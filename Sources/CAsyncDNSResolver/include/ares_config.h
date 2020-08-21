@@ -19,7 +19,7 @@
 #undef CARES_SYMBOL_SCOPE_EXTERN
 
 /* Use resolver library to configure cares */
-#define CARES_USE_LIBRESOLV
+#undef CARES_USE_LIBRESOLV
 
 /* if a /etc/inet dir is being used */
 #undef ETC_INET
@@ -170,7 +170,7 @@
 #define HAVE_IOCTL_SIOCGIFADDR
 
 /* Define to 1 if you have the `resolve' library (-lresolve). */
-#define HAVE_LIBRESOLV
+#undef HAVE_LIBRESOLV
 
 /* Define to 1 if you have the <limits.h> header file. */
 #define HAVE_LIMITS_H
