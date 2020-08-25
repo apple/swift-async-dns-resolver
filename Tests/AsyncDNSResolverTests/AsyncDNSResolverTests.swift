@@ -125,7 +125,7 @@ final class AsyncDNSResolverTests: XCTestCase {
 
         self.untilFinishOrTimeout(timeout: .seconds(3))
     }
-    
+
     // FIXME: this crashes tests
 //    func test_queryTXT() throws {
 //        self.resolver.query(.TXT(name: "apple.com") { result in
