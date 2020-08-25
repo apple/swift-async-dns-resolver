@@ -27,7 +27,6 @@ class AresChannel {
     private let semaphore = DispatchSemaphore(value: 1)
 
     deinit {
-        self.pointer?.deallocate()
         ares_destroy(self._ares_channel)
         ares_library_cleanup()
     }
