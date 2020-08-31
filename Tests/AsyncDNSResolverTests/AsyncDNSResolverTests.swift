@@ -23,9 +23,6 @@ final class AsyncDNSResolverTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-//        var options = AsyncDNSResolver.Options()
-//        options.servers = ["8.8.8.8"]
-//        self.resolver = try! AsyncDNSResolver(options: options)
         self.resolver = try! AsyncDNSResolver()
     }
 
