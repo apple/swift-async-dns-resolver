@@ -20,7 +20,7 @@ let package = Package(
                 "./c-ares/windows_port.c",
                 // FIXME: find a better way to exclude `CMakeFiles` dir if it exists. Users don't have
                 // this dir locally and this line causes a SwiftPM warning about invalid exclude.
-                //"./c-ares/CMakeFiles/",
+                // "./c-ares/CMakeFiles/",
                 "./c-ares/test/",
             ],
             sources: ["./c-ares"],
