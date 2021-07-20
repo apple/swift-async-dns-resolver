@@ -1,5 +1,24 @@
 // swift-tools-version:5.0
+
+import class Foundation.FileManager
 import PackageDescription
+
+var caresExclude = [
+    "./c-ares/acountry.c",
+    "./c-ares/adig.c",
+    "./c-ares/ahost.c",
+    "./c-ares/ares_android.c",
+    "./c-ares/windows_port.c",
+    "./c-ares/test/",
+]
+
+do {
+    if !(try FileManager.default.contentsOfDirectory(atPath: "./Sources/CAsyncDNSResolver/c-ares/CMakeFiles").isEmpty) {
+        caresExclude.append("./c-ares/CMakeFiles/")
+    }
+} catch {
+    // Assume CMakeFiles does not exist so no need to exclude it
+}
 
 let package = Package(
     name: "swift-async-dns-resolver",
@@ -12,15 +31,7 @@ let package = Package(
     targets: [
         .target(
             name: "CAsyncDNSResolver", dependencies: [],
-            exclude: [
-                "./c-ares/acountry.c",
-                "./c-ares/adig.c",
-                "./c-ares/ahost.c",
-                "./c-ares/ares_android.c",
-                "./c-ares/windows_port.c",
-                "./c-ares/CMakeFiles/",
-                "./c-ares/test/",
-            ],
+            exclude: caresExclude,
             sources: ["./c-ares"],
             cSettings: [
                 .headerSearchPath("./c-ares"),
