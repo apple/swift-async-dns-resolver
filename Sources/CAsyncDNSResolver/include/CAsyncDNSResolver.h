@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2020 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2020-2021 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -14,6 +14,9 @@
 
 #ifndef C_ASYNC_RESOLVER_H
 #define C_ASYNC_RESOLVER_H
+
+#include <arpa/inet.h> // inet_ntop
+#include <netdb.h> // hostent
 
 #include "ares_build.h"
 #include "ares_config.h"
