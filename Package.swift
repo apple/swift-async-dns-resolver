@@ -1,15 +1,14 @@
-// swift-tools-version:5.0
+// swift-tools-version:5.5
 
 import class Foundation.FileManager
 import PackageDescription
 
 var caresExclude = [
-    "./c-ares/acountry.c",
-    "./c-ares/adig.c",
-    "./c-ares/ahost.c",
-    "./c-ares/ares_android.c",
-    "./c-ares/windows_port.c",
-    "./c-ares/test/",
+    "./c-ares/src/lib/cares.rc",
+    "./c-ares/src/lib/CMakeLists.txt",
+    "./c-ares/src/lib/ares_config.h.cmake",
+    "./c-ares/src/lib/Makefile.am",
+    "./c-ares/src/lib/Makefile.inc",
 ]
 
 do {
@@ -26,19 +25,29 @@ let package = Package(
         .library(name: "AsyncDNSResolver", targets: ["AsyncDNSResolver"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
+        .package(url: "https://github.com/apple/swift-log", .upToNextMajor(from: "1.0.0")),
     ],
     targets: [
         .target(
-            name: "CAsyncDNSResolver", dependencies: [],
+            name: "CAsyncDNSResolver",
+            dependencies: [],
             exclude: caresExclude,
-            sources: ["./c-ares"],
+            sources: ["./c-ares/src/lib"],
             cSettings: [
-                .headerSearchPath("./c-ares"),
+                .headerSearchPath("./c-ares/include"),
+                .headerSearchPath("./c-ares/src/lib"),
                 .define("HAVE_CONFIG_H", to: "1"),
             ]
         ),
-        .target(name: "AsyncDNSResolver", dependencies: ["CAsyncDNSResolver", "Logging"]),
+
+        .target(
+            name: "AsyncDNSResolver",
+            dependencies: [
+                "CAsyncDNSResolver",
+                .product(name: "Logging", package: "swift-log"),
+            ]
+        ),
+
         .testTarget(name: "AsyncDNSResolverTests", dependencies: ["AsyncDNSResolver"]),
     ],
     cLanguageStandard: .gnu11
