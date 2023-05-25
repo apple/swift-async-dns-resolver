@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2020 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2020-2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -13,22 +13,22 @@
 //===----------------------------------------------------------------------===//
 
 import CAsyncDNSResolver
-import Dispatch
 
 // MARK: - ares_channel
 
-class AresChannel {
-    let pointer: UnsafeMutablePointer<ares_channel?>?
+actor AresChannel {
+    let pointer: UnsafeMutablePointer<ares_channel?>
 
-    private var _ares_channel: ares_channel? {
-        self.pointer?.pointee
+    private var underlying: ares_channel? {
+        self.pointer.pointee
     }
 
-    private let semaphore = DispatchSemaphore(value: 1)
-
     deinit {
-        ares_destroy(self._ares_channel)
-        ares_library_cleanup()
+        Task { [pointer] in
+            ares_destroy(pointer.pointee)
+            pointer.deallocate()
+            ares_library_cleanup()
+        }
     }
 
     init(options: AresOptions) throws {
@@ -52,20 +52,16 @@ class AresChannel {
     }
 
     func withChannel(_ body: (ares_channel) -> Void) {
-        self.semaphore.wait()
-        defer { self.semaphore.signal() }
-
-        guard let _ares_channel = self._ares_channel else {
+        guard let underlying = self.underlying else {
             fatalError("ares_channel not initialized")
         }
-
-        body(_ares_channel)
+        body(underlying)
     }
 }
 
 private func checkAresResult(body: () -> Int32) throws {
     let result = body()
     guard result == ARES_SUCCESS else {
-        throw AsyncDNSResolver.Error(code: result, "Failed to initialize channel")
+        throw AsyncDNSResolver.Error(code: result, "failed to initialize channel")
     }
 }

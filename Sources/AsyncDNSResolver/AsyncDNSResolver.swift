@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2020 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2020-2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -19,78 +19,80 @@ import Logging
 // MARK: - Async DNS resolver API
 
 public class AsyncDNSResolver {
-    private let logger = Logger(label: "\(AsyncDNSResolver.self)")
-
-    private let options: Options
+    let options: Options
     let ares: Ares
 
-    public init(options: Options) throws {
+    private let logger: Logger
+
+    public init(options: Options, logger: Logger? = nil) throws {
         self.options = options
         self.ares = try Ares(options: options.aresOptions)
+        self.logger = logger ?? Logger(label: "\(Self.self)")
     }
 
     public convenience init() throws {
         try self.init(options: .default)
     }
 
-    public func query(_ query: Query) {
-        switch query {
-        case .A(let name, let handler):
-            self.ares.query(type: .A, name: name, handler: .init(parser: Ares.AQueryResultParser.instance, handler))
-        case .AAAA(let name, let handler):
-            self.ares.query(type: .AAAA, name: name, handler: .init(parser: Ares.AAAAQueryResultParser.instance, handler))
-        case .NS(let name, let handler):
-            self.ares.query(type: .NS, name: name, handler: .init(parser: Ares.NSQueryResultParser.instance, handler))
-        case .CNAME(let name, let handler):
-            self.ares.query(type: .CNAME, name: name, handler: .init(parser: Ares.CNAMEQueryResultParser.instance, handler))
-        case .SOA(let name, let handler):
-            self.ares.query(type: .SOA, name: name, handler: .init(parser: Ares.SOAQueryResultParser.instance, handler))
-        case .PTR(let name, let handler):
-            self.ares.query(type: .PTR, name: name, handler: .init(parser: Ares.PTRQueryResultParser.instance, handler))
-        case .MX(let name, let handler):
-            self.ares.query(type: .MX, name: name, handler: .init(parser: Ares.MXQueryResultParser.instance, handler))
-        case .TXT(let name, let handler):
-            self.ares.query(type: .TXT, name: name, handler: .init(parser: Ares.TXTQueryResultParser.instance, handler))
-        case .SRV(let name, let handler):
-            self.ares.query(type: .SRV, name: name, handler: .init(parser: Ares.SRVQueryResultParser.instance, handler))
-        case .NAPTR(let name, let handler):
-            self.ares.query(type: .NAPTR, name: name, handler: .init(parser: Ares.NAPTRQueryResultParser.instance, handler))
-        }
+    /// Perform lookup of A record associated with `name`.
+    public func queryA(name: String) async throws -> ARecord {
+        try await self.ares.query(type: .A, name: name, replyParser: Ares.AQueryReplyParser.instance)
     }
 
-    public enum Query {
-        /// Looks up the A records associated with `name`. Upon completion, `handler` is called with the result.
-        case A(name: String, handler: (Result<[ARecord], Swift.Error>) -> Void)
-        /// Looks up the AAAA records associated with `name`. Upon completion, `handler` is called with the result.
-        case AAAA(name: String, handler: (Result<[AAAARecord], Swift.Error>) -> Void)
-        /// Looks up the NS records associated with `name`. Upon completion, `handler` is called with the result.
-        case NS(name: String, handler: (Result<[String], Swift.Error>) -> Void)
-        /// Looks up the CNAME record associated with `name`. Upon completion, `handler` is called with the result.
-        case CNAME(name: String, handler: (Result<String, Swift.Error>) -> Void)
-        /// Looks up the SOA record associated with `name`. Upon completion, `handler` is called with the result.
-        case SOA(name: String, handler: (Result<SOARecord, Swift.Error>) -> Void)
-        /// Looks up the PTR records associated with `name`. Upon completion, `handler` is called with the result.
-        case PTR(name: String, handler: (Result<[String], Swift.Error>) -> Void)
-        /// Looks up the MX records associated with `name`. Upon completion, `handler` is called with the result.
-        case MX(name: String, handler: (Result<[MXRecord], Swift.Error>) -> Void)
-        /// Looks up the TXT records associated with `name`. Upon completion, `handler` is called with the result.
-        case TXT(name: String, handler: (Result<[TXTRecord], Swift.Error>) -> Void)
-        /// Looks up the SRV records associated with `name`. Upon completion, `handler` is called with the result.
-        case SRV(name: String, handler: (Result<[SRVRecord], Swift.Error>) -> Void)
-        /// Looks up the NAPTR records associated with `name`. Upon completion, `handler` is called with the result.
-        case NAPTR(name: String, handler: (Result<[NAPTRRecord], Swift.Error>) -> Void)
+    /// Perform lookup of AAAA record associated with `name`.
+    public func queryAAAA(name: String) async throws -> AAAARecord {
+        try await self.ares.query(type: .AAAA, name: name, replyParser: Ares.AAAAQueryReplyParser.instance)
+    }
+
+    /// Perform lookup of NS records associated with `name`.
+    public func queryNS(name: String) async throws -> NSRecord {
+        try await self.ares.query(type: .NS, name: name, replyParser: Ares.NSQueryReplyParser.instance)
+    }
+
+    /// Perform lookup of CNAME record associated with `name`.
+    public func queryCNAME(name: String) async throws -> String {
+        try await self.ares.query(type: .CNAME, name: name, replyParser: Ares.CNAMEQueryReplyParser.instance)
+    }
+
+    /// Perform lookup of SOA record associated with `name`.
+    public func querySOA(name: String) async throws -> SOARecord {
+        try await self.ares.query(type: .SOA, name: name, replyParser: Ares.SOAQueryReplyParser.instance)
+    }
+
+    /// Perform lookup of PTR record associated with `name`.
+    public func queryPTR(name: String) async throws -> PTRRecord {
+        try await self.ares.query(type: .PTR, name: name, replyParser: Ares.PTRQueryReplyParser.instance)
+    }
+
+    /// Perform lookup of MX records associated with `name`.
+    public func queryMX(name: String) async throws -> [MXRecord] {
+        try await self.ares.query(type: .MX, name: name, replyParser: Ares.MXQueryReplyParser.instance)
+    }
+
+    /// Perform lookup of TXT records associated with `name`.
+    public func queryTXT(name: String) async throws -> [TXTRecord] {
+        try await self.ares.query(type: .TXT, name: name, replyParser: Ares.TXTQueryReplyParser.instance)
+    }
+
+    /// Perform lookup of SRV records associated with `name`.
+    public func querySRV(name: String) async throws -> [SRVRecord] {
+        try await self.ares.query(type: .SRV, name: name, replyParser: Ares.SRVQueryReplyParser.instance)
+    }
+
+    /// Perform lookup of NAPTR records associated with `name`.
+    public func queryNAPTR(name: String) async throws -> [NAPTRRecord] {
+        try await self.ares.query(type: .NAPTR, name: name, replyParser: Ares.NAPTRQueryReplyParser.instance)
     }
 }
 
-// MARK: - c-ares queries
+// MARK: - c-ares query wrapper
 
 class Ares {
     typealias QueryCallback = @convention(c) (UnsafeMutableRawPointer?, CInt, CInt, UnsafeMutablePointer<CUnsignedChar>?, CInt) -> Void
 
-    private let queue = DispatchQueue(label: "c-ares.query.queue")
+    let options: AresOptions
+    let channel: AresChannel
 
-    private let options: AresOptions
-    internal let channel: AresChannel
     private let queryProcessor: QueryProcessor
 
     init(options: AresOptions) throws {
@@ -102,25 +104,36 @@ class Ares {
         self.queryProcessor.start()
     }
 
-    func query(type: QueryType, name: String, handler: QueryResultHandler) {
-        // Wrap `handler` into a pointer so we can pass it to callback. The pointer will be deallocated in there later.
-        let argPointer = UnsafeMutableRawPointer.allocate(byteCount: MemoryLayout<QueryResultHandler>.stride, alignment: MemoryLayout<QueryResultHandler>.alignment)
-        argPointer.initializeMemory(as: QueryResultHandler.self, repeating: handler, count: 1)
+    func query<ReplyParser: AresQueryReplyParser>(
+        type: QueryType,
+        name: String,
+        replyParser: ReplyParser
+    ) async throws -> ReplyParser.Reply {
+        try await withCheckedThrowingContinuation { continuation in
+            let handler = QueryReplyHandler(parser: replyParser, continuation)
 
-        let queryCallback: QueryCallback = { arg, status, _, buf, len in
-            guard let argPointer = arg else {
-                preconditionFailure("'arg' is nil. This is a bug.")
+            // Wrap `handler` into a pointer so we can pass it to callback. The pointer will be deallocated in there later.
+            let argPointer = UnsafeMutableRawPointer.allocate(
+                byteCount: MemoryLayout<QueryReplyHandler>.stride,
+                alignment: MemoryLayout<QueryReplyHandler>.alignment
+            )
+            argPointer.initializeMemory(as: QueryReplyHandler.self, repeating: handler, count: 1)
+
+            let queryCallback: QueryCallback = { arg, status, _, buf, len in
+                guard let argPointer = arg else {
+                    preconditionFailure("'arg' is nil. This is a bug.")
+                }
+
+                let handler = QueryReplyHandler(pointer: argPointer)
+                defer { argPointer.deallocate() }
+
+                handler.handle(status: status, buffer: buf, length: len)
             }
 
-            let handler = QueryResultHandler(pointer: argPointer)
-            defer { argPointer.deallocate() }
-
-            handler.handle(status: status, buffer: buf, length: len)
-        }
-
-        self.queue.async {
-            self.channel.withChannel { channel in
-                ares_query(channel, name, DNSClass.IN.rawValue, type.rawValue, queryCallback, argPointer)
+            Task {
+                await self.channel.withChannel { channel in
+                    ares_query(channel, name, DNSClass.IN.rawValue, type.rawValue, queryCallback, argPointer)
+                }
             }
         }
     }
@@ -146,40 +159,6 @@ class Ares {
 }
 
 extension Ares {
-    struct QueryResultHandler {
-        private let _handler: (CInt, UnsafeMutablePointer<CUnsignedChar>?, CInt) -> Void
-        private let _errorHandler: (Error) -> Void
-
-        init<T, Parser: AresQueryResultParser>(parser: Parser, _ handler: @escaping (Result<T, Error>) -> Void) where Parser.ResultType == T {
-            self._handler = { status, buffer, length in
-                guard status == ARES_SUCCESS else {
-                    return handler(.failure(AsyncDNSResolver.Error(code: status, "Query failed")))
-                }
-
-                let result = parser.parse(buffer: buffer, length: length)
-                handler(result)
-            }
-            self._errorHandler = { error in
-                handler(.failure(error))
-            }
-        }
-
-        init(pointer: UnsafeMutableRawPointer) {
-            let handlerPointer = pointer.assumingMemoryBound(to: Self.self)
-            self = handlerPointer.pointee
-        }
-
-        func handle(status: CInt, buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) {
-            self._handler(status, buffer, length)
-        }
-
-        func handleError(_ error: Error) {
-            self._errorHandler(error)
-        }
-    }
-}
-
-extension Ares {
     // TODO: implement this more nicely using NIO EventLoop?
     // See:
     // https://github.com/dimbleby/c-ares-resolver/blob/master/src/unix/eventloop.rs
@@ -198,11 +177,11 @@ extension Ares {
 
         /// Asks c-ares for the set of socket descriptors we are waiting on for the `ares_channel`'s pending queries
         /// then call `ares_process_fd` if any is ready for read and/or write.
-        /// c-ares returns up to ARES_GETSOCK_MAXNUM socket descriptors only. If more are in use (unlikely) they are not reported back.
-        func poll() {
+        /// c-ares returns up to `ARES_GETSOCK_MAXNUM` socket descriptors only. If more are in use (unlikely) they are not reported back.
+        func poll() async {
             var socks = [ares_socket_t](repeating: ares_socket_t(), count: Int(ARES_GETSOCK_MAXNUM))
 
-            self.channel.withChannel { channel in
+            await self.channel.withChannel { channel in
                 // Indicates what actions (i.e., read/write) to wait for on the different sockets
                 let bitmask = UInt32(ares_getsock(channel, &socks, ARES_GETSOCK_MAXNUM))
 
@@ -232,148 +211,187 @@ extension Ares {
         private func schedule() {
             self.queue.asyncAfter(deadline: DispatchTime.now() + self.pollInterval) { [weak self] in
                 if let self = self {
-                    self.poll()
+                    Task { await self.poll() }
                 }
             }
         }
     }
 }
 
-// MARK: - Query result parsers
+// MARK: - c-ares query reply handler
 
-protocol AresQueryResultParser {
-    associatedtype ResultType
+extension Ares {
+    struct QueryReplyHandler {
+        private let _handler: (CInt, UnsafeMutablePointer<CUnsignedChar>?, CInt) -> Void
 
-    func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) -> Result<ResultType, Error>
+        init<Parser: AresQueryReplyParser>(parser: Parser, _ continuation: CheckedContinuation<Parser.Reply, Error>) {
+            self._handler = { status, buffer, length in
+                guard status == ARES_SUCCESS else {
+                    return continuation.resume(throwing: AsyncDNSResolver.Error(code: status, "query failed"))
+                }
+
+                do {
+                    let reply = try parser.parse(buffer: buffer, length: length)
+                    continuation.resume(returning: reply)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+
+        init(pointer: UnsafeMutableRawPointer) {
+            let handlerPointer = pointer.assumingMemoryBound(to: Self.self)
+            self = handlerPointer.pointee
+        }
+
+        func handle(status: CInt, buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) {
+            self._handler(status, buffer, length)
+        }
+    }
+}
+
+// MARK: - c-ares query reply parsers
+
+protocol AresQueryReplyParser {
+    associatedtype Reply
+
+    func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> Reply
 }
 
 extension Ares {
-    struct AQueryResultParser: AresQueryResultParser {
-        static let instance = AQueryResultParser()
+    static let maxAddresses: Int = 32
 
-        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) -> Result<[ARecord], Error> {
+    struct AQueryReplyParser: AresQueryReplyParser {
+        static let instance = AQueryReplyParser()
+
+        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> ARecord {
             // `hostent` is not needed, but if we don't allocate and pass it as an arg c-ares will allocate one
             // and free it automatically, and that might cause TSAN errors in `ares_free_hostent`. If we allocate
             // it then we control when it's freed.
             let hostentPtrPtr = UnsafeMutablePointer<UnsafeMutablePointer<hostent>?>.allocate(capacity: 1)
             defer { hostentPtrPtr.deallocate() }
 
-            let addrttlsPointer = UnsafeMutablePointer<ares_addrttl>.allocate(capacity: 1)
+            let addrttlsPointer = UnsafeMutablePointer<ares_addrttl>.allocate(capacity: Ares.maxAddresses)
             defer { addrttlsPointer.deallocate() }
             let naddrttlsPointer = UnsafeMutablePointer<CInt>.allocate(capacity: 1)
             defer { naddrttlsPointer.deallocate() }
+
+            // Set a limit or else addrttl array won't be populated
+            naddrttlsPointer.pointee = CInt(Ares.maxAddresses)
 
             let parseStatus = ares_parse_a_reply(buffer, length, hostentPtrPtr, addrttlsPointer, naddrttlsPointer)
             guard parseStatus == ARES_SUCCESS else {
-                return .failure(AsyncDNSResolver.Error(code: parseStatus, "Failed to parse A query result"))
+                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse A query reply")
             }
 
-            let aRecords = Array(UnsafeBufferPointer(start: addrttlsPointer, count: Int(naddrttlsPointer.pointee)))
-                .map { ARecord(address: $0.ipaddr, ttl: $0.ttl) }
-            return .success(aRecords)
+            let addressTTLs = Array(UnsafeBufferPointer(start: addrttlsPointer, count: Int(naddrttlsPointer.pointee)))
+                .map { IPAddressTTL($0) }
+            return ARecord(addresses: addressTTLs)
         }
     }
 
-    struct AAAAQueryResultParser: AresQueryResultParser {
-        static let instance = AAAAQueryResultParser()
+    struct AAAAQueryReplyParser: AresQueryReplyParser {
+        static let instance = AAAAQueryReplyParser()
 
-        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) -> Result<[AAAARecord], Error> {
+        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> AAAARecord {
             // `hostent` is not needed, but if we don't allocate and pass it as an arg c-ares will allocate one
             // and free it automatically, and that might cause TSAN errors in `ares_free_hostent`. If we allocate
             // it then we control when it's freed.
             let hostentPtrPtr = UnsafeMutablePointer<UnsafeMutablePointer<hostent>?>.allocate(capacity: 1)
             defer { hostentPtrPtr.deallocate() }
 
-            let addrttlsPointer = UnsafeMutablePointer<ares_addr6ttl>.allocate(capacity: 1)
+            let addrttlsPointer = UnsafeMutablePointer<ares_addr6ttl>.allocate(capacity: Ares.maxAddresses)
             defer { addrttlsPointer.deallocate() }
             let naddrttlsPointer = UnsafeMutablePointer<CInt>.allocate(capacity: 1)
             defer { naddrttlsPointer.deallocate() }
 
+            // Set a limit or else addrttl array won't be populated
+            naddrttlsPointer.pointee = CInt(Ares.maxAddresses)
+
             let parseStatus = ares_parse_aaaa_reply(buffer, length, hostentPtrPtr, addrttlsPointer, naddrttlsPointer)
             guard parseStatus == ARES_SUCCESS else {
-                return .failure(AsyncDNSResolver.Error(code: parseStatus, "Failed to parse AAAA query result"))
+                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse AAAA query reply")
             }
 
-            let aaaaRecords: [AAAARecord] = Array(UnsafeBufferPointer(start: addrttlsPointer, count: Int(naddrttlsPointer.pointee)))
-                .map { AAAARecord(address: $0.ip6addr, ttl: $0.ttl) }
-            return .success(aaaaRecords)
+            let addressTTLs = Array(UnsafeBufferPointer(start: addrttlsPointer, count: Int(naddrttlsPointer.pointee)))
+                .map { IPAddressTTL($0) }
+            return AAAARecord(addresses: addressTTLs)
         }
     }
 
-    struct NSQueryResultParser: AresQueryResultParser {
-        static let instance = NSQueryResultParser()
+    struct NSQueryReplyParser: AresQueryReplyParser {
+        static let instance = NSQueryReplyParser()
 
-        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) -> Result<[String], Error> {
+        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> NSRecord {
             let hostentPtrPtr = UnsafeMutablePointer<UnsafeMutablePointer<hostent>?>.allocate(capacity: 1)
             defer { hostentPtrPtr.deallocate() }
 
             let parseStatus = ares_parse_ns_reply(buffer, length, hostentPtrPtr)
             guard parseStatus == ARES_SUCCESS else {
-                return .failure(AsyncDNSResolver.Error(code: parseStatus, "Failed to parse NS query result"))
+                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse NS query reply")
             }
 
             guard let hostent = hostentPtrPtr.pointee?.pointee else {
-                return .failure(AsyncDNSResolver.Error.noData("No NS records found"))
+                throw AsyncDNSResolver.Error.noData("no NS records found")
             }
 
-            let nameServers = self.toStringArray(from: hostent.h_aliases)
-            return .success(nameServers ?? [])
+            let nameServers = toStringArray(hostent.h_aliases)
+            return NSRecord(nameservers: nameServers ?? [])
         }
     }
 
-    struct CNAMEQueryResultParser: AresQueryResultParser {
-        static let instance = CNAMEQueryResultParser()
+    struct CNAMEQueryReplyParser: AresQueryReplyParser {
+        static let instance = CNAMEQueryReplyParser()
 
-        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) -> Result<String, Error> {
+        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> String {
             let hostentPtrPtr = UnsafeMutablePointer<UnsafeMutablePointer<hostent>?>.allocate(capacity: 1)
             defer { hostentPtrPtr.deallocate() }
 
             let parseStatus = ares_parse_a_reply(buffer, length, hostentPtrPtr, nil, nil)
             guard parseStatus == ARES_SUCCESS else {
-                return .failure(AsyncDNSResolver.Error(code: parseStatus, "Failed to parse CNAME query result"))
+                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse CNAME query reply")
             }
 
             guard let hostent = hostentPtrPtr.pointee?.pointee else {
-                return .failure(AsyncDNSResolver.Error.noData("No CNAME record found"))
+                throw AsyncDNSResolver.Error.noData("no CNAME record found")
             }
 
-            return .success(String(cString: hostent.h_name))
+            return String(cString: hostent.h_name)
         }
     }
 
-    struct SOAQueryResultParser: AresQueryResultParser {
-        static let instance = SOAQueryResultParser()
+    struct SOAQueryReplyParser: AresQueryReplyParser {
+        static let instance = SOAQueryReplyParser()
 
-        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) -> Result<SOARecord, Error> {
+        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> SOARecord {
             let soaReplyPtrPtr = UnsafeMutablePointer<UnsafeMutablePointer<ares_soa_reply>?>.allocate(capacity: 1)
             defer { soaReplyPtrPtr.deallocate() }
 
             let parseStatus = ares_parse_soa_reply(buffer, length, soaReplyPtrPtr)
             guard parseStatus == ARES_SUCCESS else {
-                return .failure(AsyncDNSResolver.Error(code: parseStatus, "Failed to parse SOA query result"))
+                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse SOA query reply")
             }
 
             guard let soaReply = soaReplyPtrPtr.pointee?.pointee else {
-                return .failure(AsyncDNSResolver.Error.noData("No SOA record found"))
+                throw AsyncDNSResolver.Error.noData("no SOA record found")
             }
 
-            let soaRecord = SOARecord(
-                nsName: soaReply.nsname.map { String(cString: $0) },
-                hostMaster: soaReply.hostmaster.map { String(cString: $0) },
+            return SOARecord(
+                mname: soaReply.nsname.map { String(cString: $0) },
+                rname: soaReply.hostmaster.map { String(cString: $0) },
                 serial: soaReply.serial,
                 refresh: soaReply.refresh,
                 retry: soaReply.retry,
                 expire: soaReply.expire,
-                minTTL: soaReply.minttl
+                ttl: soaReply.minttl
             )
-            return .success(soaRecord)
         }
     }
 
-    struct PTRQueryResultParser: AresQueryResultParser {
-        static let instance = PTRQueryResultParser()
+    struct PTRQueryReplyParser: AresQueryReplyParser {
+        static let instance = PTRQueryReplyParser()
 
-        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) -> Result<[String], Error> {
+        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> PTRRecord {
             let dummyAddrPointer = UnsafeMutablePointer<CChar>.allocate(capacity: 1)
             defer { dummyAddrPointer.deallocate() }
             let hostentPtrPtr = UnsafeMutablePointer<UnsafeMutablePointer<hostent>?>.allocate(capacity: 1)
@@ -381,50 +399,55 @@ extension Ares {
 
             let parseStatus = ares_parse_ptr_reply(buffer, length, dummyAddrPointer, INET_ADDRSTRLEN, AF_INET, hostentPtrPtr)
             guard parseStatus == ARES_SUCCESS else {
-                return .failure(AsyncDNSResolver.Error(code: parseStatus, "Failed to parse PTR query result"))
+                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse PTR query record")
             }
 
             guard let hostent = hostentPtrPtr.pointee?.pointee else {
-                return .failure(AsyncDNSResolver.Error.noData("No PTR records found"))
+                throw AsyncDNSResolver.Error.noData("no PTR record found")
             }
 
-            let hostnames = self.toStringArray(from: hostent.h_aliases)
-            return .success(hostnames ?? [])
+            let hostnames = toStringArray(hostent.h_aliases)
+            return PTRRecord(names: hostnames ?? [])
         }
     }
 
-    struct MXQueryResultParser: AresQueryResultParser {
-        static let instance = MXQueryResultParser()
+    struct MXQueryReplyParser: AresQueryReplyParser {
+        static let instance = MXQueryReplyParser()
 
-        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) -> Result<[MXRecord], Error> {
+        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> [MXRecord] {
             let mxsPointer = UnsafeMutablePointer<UnsafeMutablePointer<ares_mx_reply>?>.allocate(capacity: 1)
             defer { mxsPointer.deallocate() }
 
             let parseStatus = ares_parse_mx_reply(buffer, length, mxsPointer)
             guard parseStatus == ARES_SUCCESS else {
-                return .failure(AsyncDNSResolver.Error(code: parseStatus, "Failed to parse MX query result"))
+                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse MX query record")
             }
 
             var mxRecords = [MXRecord]()
             var mxRecordOptional = mxsPointer.pointee?.pointee
             while let mxRecord = mxRecordOptional {
-                mxRecords.append(MXRecord(host: String(cString: mxRecord.host), priority: mxRecord.priority))
+                mxRecords.append(
+                    MXRecord(
+                        host: String(cString: mxRecord.host),
+                        priority: mxRecord.priority
+                    )
+                )
                 mxRecordOptional = mxRecord.next?.pointee
             }
-            return .success(mxRecords)
+            return mxRecords
         }
     }
 
-    struct TXTQueryResultParser: AresQueryResultParser {
-        static let instance = TXTQueryResultParser()
+    struct TXTQueryReplyParser: AresQueryReplyParser {
+        static let instance = TXTQueryReplyParser()
 
-        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) -> Result<[TXTRecord], Error> {
+        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> [TXTRecord] {
             let txtsPointer = UnsafeMutablePointer<UnsafeMutablePointer<ares_txt_reply>?>.allocate(capacity: 1)
             defer { txtsPointer.deallocate() }
 
             let parseStatus = ares_parse_txt_reply(buffer, length, txtsPointer)
             guard parseStatus == ARES_SUCCESS else {
-                return .failure(AsyncDNSResolver.Error(code: parseStatus, "Failed to parse TXT query result"))
+                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse TXT query reply")
             }
 
             var txtRecords = [TXTRecord]()
@@ -433,42 +456,49 @@ extension Ares {
                 txtRecords.append(TXTRecord(txt: String(cString: txtRecord.txt)))
                 txtRecordOptional = txtRecord.next?.pointee
             }
-            return .success(txtRecords)
+            return txtRecords
         }
     }
 
-    struct SRVQueryResultParser: AresQueryResultParser {
-        static let instance = SRVQueryResultParser()
+    struct SRVQueryReplyParser: AresQueryReplyParser {
+        static let instance = SRVQueryReplyParser()
 
-        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) -> Result<[SRVRecord], Error> {
-            let srvsPointer = UnsafeMutablePointer<UnsafeMutablePointer<ares_srv_reply>?>.allocate(capacity: 1)
-            defer { srvsPointer.deallocate() }
+        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> [SRVRecord] {
+            let replyPointer = UnsafeMutablePointer<UnsafeMutablePointer<ares_srv_reply>?>.allocate(capacity: 1)
+            defer { replyPointer.deallocate() }
 
-            let parseStatus = ares_parse_srv_reply(buffer, length, srvsPointer)
+            let parseStatus = ares_parse_srv_reply(buffer, length, replyPointer)
             guard parseStatus == ARES_SUCCESS else {
-                return .failure(AsyncDNSResolver.Error(code: parseStatus, "Failed to parse SRV query result"))
+                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse SRV query reply")
             }
 
             var srvRecords = [SRVRecord]()
-            var srvRecordOptional = srvsPointer.pointee?.pointee
+            var srvRecordOptional = replyPointer.pointee?.pointee
             while let srvRecord = srvRecordOptional {
-                srvRecords.append(SRVRecord(host: String(cString: srvRecord.host), port: srvRecord.port, weight: srvRecord.weight, priority: srvRecord.priority))
+                srvRecords.append(
+                    SRVRecord(
+                        host: String(cString: srvRecord.host),
+                        port: srvRecord.port,
+                        weight: srvRecord.weight,
+                        priority: srvRecord.priority
+                    )
+                )
                 srvRecordOptional = srvRecord.next?.pointee
             }
-            return .success(srvRecords)
+            return srvRecords
         }
     }
 
-    struct NAPTRQueryResultParser: AresQueryResultParser {
-        static let instance = NAPTRQueryResultParser()
+    struct NAPTRQueryReplyParser: AresQueryReplyParser {
+        static let instance = NAPTRQueryReplyParser()
 
-        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) -> Result<[NAPTRRecord], Error> {
+        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> [NAPTRRecord] {
             let naptrsPointer = UnsafeMutablePointer<UnsafeMutablePointer<ares_naptr_reply>?>.allocate(capacity: 1)
             defer { naptrsPointer.deallocate() }
 
             let parseStatus = ares_parse_naptr_reply(buffer, length, naptrsPointer)
             guard parseStatus == ARES_SUCCESS else {
-                return .failure(AsyncDNSResolver.Error(code: parseStatus, "Failed to parse NAPTR query result"))
+                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse NAPTR query reply")
             }
 
             var naptrRecords = [NAPTRRecord]()
@@ -486,29 +516,12 @@ extension Ares {
                 )
                 naptrRecordOptional = naptrRecord.next?.pointee
             }
-            return .success(naptrRecords)
+            return naptrRecords
         }
     }
 }
 
-extension AresQueryResultParser {
-    func toStringArray(from cStringArray: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> [String]? {
-        guard let cStringArray = cStringArray else {
-            return nil
-        }
-
-        var result = [String]()
-        var stringPointer = cStringArray
-        while let ptr = stringPointer.pointee {
-            result.append(String(cString: ptr))
-            stringPointer = stringPointer.advanced(by: 1)
-        }
-
-        return result
-    }
-}
-
-// MARK: - Query result types
+// MARK: - Query reply types
 
 public enum IPAddress: CustomStringConvertible {
     case IPv4(in_addr)
@@ -554,57 +567,124 @@ public enum IPAddress: CustomStringConvertible {
     }
 }
 
-public struct ARecord {
+public struct IPAddressTTL: CustomStringConvertible {
     public let address: IPAddress
     public let ttl: Int32
 
-    init(address: in_addr, ttl: Int32) {
-        self.address = IPAddress(address)
-        self.ttl = ttl
+    init(_ addrttl: ares_addrttl) {
+        self.address = IPAddress(addrttl.ipaddr)
+        self.ttl = addrttl.ttl
+    }
+
+    init(_ addrttl: ares_addr6ttl) {
+        self.address = IPAddress(addrttl.ip6addr)
+        self.ttl = addrttl.ttl
+    }
+
+    public var description: String {
+        "\(Self.self)(address=\(self.address), ttl=\(self.ttl))"
     }
 }
 
-public struct AAAARecord {
-    public let address: IPAddress
-    public let ttl: Int32
+public struct ARecord: CustomStringConvertible {
+    public let addresses: [IPAddressTTL]
 
-    init(address: ares_in6_addr, ttl: Int32) {
-        self.address = IPAddress(address)
-        self.ttl = ttl
+    public var description: String {
+        "\(Self.self)(addresses=\(self.addresses))"
     }
 }
 
-public struct SOARecord {
-    public let nsName: String?
-    public let hostMaster: String?
+public struct AAAARecord: CustomStringConvertible {
+    public let addresses: [IPAddressTTL]
+
+    public var description: String {
+        "\(Self.self)(addresses=\(self.addresses))"
+    }
+}
+
+public struct NSRecord: CustomStringConvertible {
+    public let nameservers: [String]
+
+    public var description: String {
+        "\(Self.self)(nameservers=\(self.nameservers))"
+    }
+}
+
+public struct SOARecord: CustomStringConvertible {
+    public let mname: String?
+    public let rname: String?
     public let serial: UInt32
     public let refresh: UInt32
     public let retry: UInt32
     public let expire: UInt32
-    public let minTTL: UInt32
+    public let ttl: UInt32
+
+    public var description: String {
+        "\(Self.self)(mname=\(self.mname ?? ""), rname=\(self.rname ?? ""), serial=\(self.serial), refresh=\(self.refresh), retry=\(self.retry), expire=\(self.expire), ttl=\(self.ttl))"
+    }
 }
 
-public struct MXRecord {
+public struct PTRRecord: CustomStringConvertible {
+    public let names: [String]
+
+    public var description: String {
+        "\(Self.self)(names=\(self.names))"
+    }
+}
+
+public struct MXRecord: CustomStringConvertible {
     public let host: String
     public let priority: UInt16
+
+    public var description: String {
+        "\(Self.self)(host=\(self.host), priority=\(self.priority))"
+    }
 }
 
 public struct TXTRecord {
     public let txt: String
+
+    public var description: String {
+        "\(Self.self)(\(self.txt))"
+    }
 }
 
-public struct SRVRecord {
+public struct SRVRecord: CustomStringConvertible {
     public let host: String
     public let port: UInt16
     public let weight: UInt16
     public let priority: UInt16
+
+    public var description: String {
+        "\(Self.self)(host=\(self.host), port=\(self.port), weight=\(self.weight), priority=\(self.priority))"
+    }
 }
 
-public struct NAPTRRecord {
+public struct NAPTRRecord: CustomStringConvertible {
     public let flags: String?
     public let service: String?
     public let regExp: String?
     public let replacement: String
     public let order: UInt16
     public let preference: UInt16
+
+    public var description: String {
+        "\(Self.self)(flags=\(self.flags ?? ""), service=\(self.service ?? ""), regExp=\(self.regExp ?? ""), replacement=\(self.replacement), order=\(self.order), preference=\(self.preference))"
+    }
+}
+
+// MARK: - helpers
+
+private func toStringArray(_ arrayPointer: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> [String]? {
+    guard let arrayPointer = arrayPointer else {
+        return nil
+    }
+
+    var result = [String]()
+    var stringPointer = arrayPointer
+    while let ptr = stringPointer.pointee {
+        result.append(String(cString: ptr))
+        stringPointer = stringPointer.advanced(by: 1)
+    }
+    return result
 }

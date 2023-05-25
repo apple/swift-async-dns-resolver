@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2020 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2020-2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -39,61 +39,64 @@ extension AsyncDNSResolver {
             case badFlags(String?)
             case noName(String?)
             case badHints(String?)
-            case service(String?)
             case notInitialized(String?)
+            case initError(String?)
             case cancelled(String?)
+            case service(String?)
             case other(code: Int32, String?)
 
             var description: String {
                 switch self {
                 case .noData(let description):
-                    return "No data: \(description ?? "")"
+                    return "no data: \(description ?? "")"
                 case .invalidQuery(let description):
-                    return "Invalid query: \(description ?? "")"
+                    return "invalid query: \(description ?? "")"
                 case .serverFailure(let description):
-                    return "Server failure: \(description ?? "")"
+                    return "server failure: \(description ?? "")"
                 case .notFound(let description):
-                    return "Not found: \(description ?? "")"
+                    return "not found: \(description ?? "")"
                 case .notImplemented(let description):
-                    return "Not implemented: \(description ?? "")"
+                    return "not implemented: \(description ?? "")"
                 case .serverRefused(let description):
-                    return "Server refused: \(description ?? "")"
+                    return "server refused: \(description ?? "")"
                 case .badQuery(let description):
-                    return "Bad query: \(description ?? "")"
+                    return "bad query: \(description ?? "")"
                 case .badName(let description):
-                    return "Bad name: \(description ?? "")"
+                    return "bad name: \(description ?? "")"
                 case .badFamily(let description):
-                    return "Bad family: \(description ?? "")"
+                    return "bad family: \(description ?? "")"
                 case .badResponse(let description):
-                    return "Bad response: \(description ?? "")"
+                    return "bad response: \(description ?? "")"
                 case .connectionRefused(let description):
-                    return "Connection refused: \(description ?? "")"
+                    return "connection refused: \(description ?? "")"
                 case .timeout(let description):
-                    return "Timeout: \(description ?? "")"
+                    return "timeout: \(description ?? "")"
                 case .eof(let description):
                     return "EOF: \(description ?? "")"
                 case .fileIO(let description):
-                    return "File IO: \(description ?? "")"
+                    return "file IO: \(description ?? "")"
                 case .noMemory(let description):
-                    return "No memory: \(description ?? "")"
+                    return "no memory: \(description ?? "")"
                 case .destruction(let description):
-                    return "Destruction: \(description ?? "")"
+                    return "destruction: \(description ?? "")"
                 case .badString(let description):
-                    return "Bad string: \(description ?? "")"
+                    return "bad string: \(description ?? "")"
                 case .badFlags(let description):
-                    return "Bad flags: \(description ?? "")"
+                    return "bad flags: \(description ?? "")"
                 case .noName(let description):
-                    return "No name: \(description ?? "")"
+                    return "no name: \(description ?? "")"
                 case .badHints(let description):
-                    return "Bad hints: \(description ?? "")"
-                case .service(let description):
-                    return "Service: \(description ?? "")"
+                    return "bad hints: \(description ?? "")"
                 case .notInitialized(let description):
-                    return "Not initialized: \(description ?? "")"
+                    return "not initialized: \(description ?? "")"
+                case .initError(let description):
+                    return "initialization error: \(description ?? "")"
                 case .cancelled(let description):
-                    return "Cancelled: \(description ?? "")"
+                    return "cancelled: \(description ?? "")"
+                case .service(let description):
+                    return "service: \(description ?? "")"
                 case .other(let code, let description):
-                    return "Other code [\(code)]: \(description ?? "")"
+                    return "other [\(code)]: \(description ?? "")"
                 }
             }
         }
@@ -146,12 +149,14 @@ extension AsyncDNSResolver {
                 self = .noName(description)
             case ARES_EBADHINTS:
                 self = .badHints(description)
-            case ARES_ESERVICE:
-                self = .service(description)
             case ARES_ENOTINITIALIZED:
                 self = .notInitialized(description)
+            case ARES_ELOADIPHLPAPI, ARES_EADDRGETNETWORKPARAMS:
+                self = .initError(description)
             case ARES_ECANCELLED:
                 self = .cancelled(description)
+            case ARES_ESERVICE:
+                self = .service(description)
             default:
                 self = .other(code: code, description)
             }
@@ -241,16 +246,20 @@ extension AsyncDNSResolver {
             .init(code: .badHints(description))
         }
 
-        public static func service(_ description: String? = nil) -> Error {
-            .init(code: .service(description))
-        }
-
         public static func notInitialized(_ description: String? = nil) -> Error {
             .init(code: .notInitialized(description))
         }
 
+        public static func initError(_ description: String? = nil) -> Error {
+            .init(code: .initError(description))
+        }
+
         public static func cancelled(_ description: String? = nil) -> Error {
             .init(code: .cancelled(description))
+        }
+
+        public static func service(_ description: String? = nil) -> Error {
+            .init(code: .service(description))
         }
 
         public static func other(code: Int32, _ description: String? = nil) -> Error {
