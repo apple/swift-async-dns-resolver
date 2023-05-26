@@ -14,7 +14,6 @@
 
 @testable import AsyncDNSResolver
 import CAsyncDNSResolver
-import Foundation
 import XCTest
 
 final class AsyncDNSResolverTests: XCTestCase {
@@ -125,7 +124,6 @@ final class AsyncDNSResolverTests: XCTestCase {
     func test_concurrency() async throws {
         func run(
             times: Int = 100,
-            timeout: Duration = .seconds(5),
             _ query: @escaping (_ index: Int) async throws -> Void
         ) async throws {
             try await withThrowingTaskGroup(of: Void.self) { group in
