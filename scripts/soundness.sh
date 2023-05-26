@@ -3,7 +3,7 @@
 ##
 ## This source file is part of the SwiftAsyncDNSResolver open source project
 ##
-## Copyright (c) 2020-2021 Apple Inc. and the SwiftAsyncDNSResolver project authors
+## Copyright (c) 2020-2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
 ## Licensed under Apache License v2.0
 ##
 ## See LICENSE.txt for license information
@@ -18,7 +18,7 @@ here="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 function replace_acceptable_years() {
     # this needs to replace all acceptable forms with 'YEARS'
-    sed -e 's/2020-2021/YEARS/' -e 's/2020/YEARS/' -e 's/2021/YEARS/'
+    sed -e 's/202[012]-202[123]/YEARS/' -e 's/202[0123]/YEARS/'
 }
 
 printf "=> Checking format... "

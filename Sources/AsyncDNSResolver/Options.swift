@@ -271,7 +271,7 @@ class AresOptions {
         // The pointers are being replaced so deallocate them first
         self.domainPointers?.deallocate()
 
-        let domainPointers = domains.map { $0.ccharArrayPointer }
+        let domainPointers = domains.map(\.ccharArrayPointer)
         self.domainPointers = domainPointers
 
         domainPointers.withUnsafeBufferPointer { bufferPointer in
