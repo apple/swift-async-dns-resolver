@@ -14,9 +14,9 @@
 
 import CAsyncDNSResolver
 
-// MARK: - Options for async DNS resolver
+// MARK: - Options for `CAresDNSResolver`
 
-extension AsyncDNSResolver {
+extension CAresDNSResolver {
     public struct Options {
         public static var `default`: Options {
             .init()
@@ -87,7 +87,7 @@ extension AsyncDNSResolver {
     }
 }
 
-extension AsyncDNSResolver.Options {
+extension CAresDNSResolver.Options {
     public struct Flags: OptionSet {
         public let rawValue: Int32
 
@@ -119,7 +119,7 @@ extension AsyncDNSResolver.Options {
     }
 }
 
-extension AsyncDNSResolver.Options {
+extension CAresDNSResolver.Options {
     var aresOptions: AresOptions {
         let aresOptions = AresOptions()
         aresOptions.setFlags(self.flags.rawValue)
