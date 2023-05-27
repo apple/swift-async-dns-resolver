@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2020 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2020-2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -22,58 +22,63 @@ extension AsyncDNSResolver {
             .init()
         }
 
-        /// Sets flags controlling the behavior of the resolver.
+        /// Flags controlling the behavior of the resolver.
         ///
         /// - SeeAlso: `AsyncDNSResolver.Options.Flags`
         public var flags: Flags = .init()
 
-        /// Sets the number of milliseconds each name server is given to respond to a query on the first try. (After the first try, the
+        /// The number of milliseconds each name server is given to respond to a query on the first try. (After the first try, the
         /// timeout algorithm becomes more complicated, but scales linearly with the value of timeout).
         public var timeoutMillis: Int32 = 3000
 
-        /// Sets the number of attempts the resolver will try contacting each name server before giving up.
+        /// The number of attempts the resolver will try contacting each name server before giving up.
         public var attempts: Int32 = 3
 
-        /// Sets the number of dots which must be present in a domain name for it to be queried for "as is" prior to querying for it
-        /// with the default domain extensions appended. The value here is the default unless set otherwise by resolv.conf or the
-        /// RES_OPTIONS environment variable.
+        /// The number of dots which must be present in a domain name for it to be queried for "as is" prior to querying for it
+        /// with the default domain extensions appended. The value here is the default unless set otherwise by `resolv.conf`
+        /// or the `RES_OPTIONS` environment variable.
         public var numberOfDots: Int32 = 1
 
-        /// Sets the UDP port to use for queries. The default value is 53, the standard name service port.
+        /// The UDP port to use for queries. The default value is 53, the standard name service port.
         public var udpPort: UInt16 = 53
 
-        /// Sets the TCP port to use for queries. The default value is 53, the standard name service port.
+        /// The TCP port to use for queries. The default value is 53, the standard name service port.
         public var tcpPort: UInt16 = 53
 
-        /// Sets the socket send buffer size.
+        /// The socket send buffer size.
         public var socketSendBufferSize: Int32?
 
-        /// Sets the socket receive buffer size.
+        /// The socket receive buffer size.
         public var socketReceiveBufferSize: Int32?
 
-        /// Sets the EDNS packet size.
+        /// The EDNS packet size.
         public var ednsPacketSize: Int32?
 
         /// Configures round robin selection of nameservers.
         public var rotate: Bool?
 
-        /// Sets the path to use for reading the resolv.conf file. The `resolvconf_path` should be set to a path string, and
-        /// will be honored on *nix like systems. The default is /etc/resolv.conf.
+        /// The path to use for reading the resolv.conf file. The `resolvconf_path` should be set to a path string, and
+        /// will be honored on \*nix like systems. The default is `/etc/resolv.conf`.
         public var resolvConfPath: String?
 
-        /// Sets the lookups to perform for host queries. `lookups` should be set to a string of the characters "b" or "f",
+        /// The path to use for reading the hosts file. The `hosts_path` should be set to a path string, and
+        /// will be honored on \*nix like systems. The default is `/etc/hosts`.
+        public var hostsFilePath: String?
+
+        /// The lookups to perform for host queries. `lookups` should be set to a string of the characters "b" or "f",
         /// where "b" indicates a DNS lookup and "f" indicates a lookup in the hosts file.
         public var lookups: String?
 
-        /// Sets the domains to search, instead of the domains specified in resolv.conf or the domain derived from the kernel hostname variable.
+        /// The domains to search, instead of the domains specified in `resolv.conf` or the domain derived
+        /// from the kernel hostname variable.
         public var domains: [String]?
 
-        /// Sets the list of servers to contact, instead of the servers specified in resolv.conf or the local named.
+        /// The list of servers to contact, instead of the servers specified in `resolv.conf` or the local named.
         ///
         /// String format is `host[:port]`. IPv6 addresses with ports require square brackets. e.g. `[2001:4860:4860::8888]:53`.
         public var servers: [String]?
 
-        /// Sets the address sortlist configuration, so that addresses returned by `ares_gethostbyname` are sorted
+        /// The address sortlist configuration, so that addresses returned by `ares_gethostbyname` are sorted
         /// according to it.
         ///
         /// String format IP-address-netmask pairs. The netmask is optional but follows the address after a slash if present.
@@ -118,7 +123,7 @@ extension AsyncDNSResolver.Options {
     var aresOptions: AresOptions {
         let aresOptions = AresOptions()
         aresOptions.setFlags(self.flags.rawValue)
-        aresOptions.setTimeout(self.timeoutMillis)
+        aresOptions.setTimeoutMillis(self.timeoutMillis)
         aresOptions.setTries(self.attempts)
         aresOptions.setNDots(self.numberOfDots)
         aresOptions.setUDPPort(self.udpPort)
@@ -148,6 +153,10 @@ extension AsyncDNSResolver.Options {
             aresOptions.setResolvConfPath(resolvConfPath)
         }
 
+        if let hostsFilePath = self.hostsFilePath {
+            aresOptions.setHostsFilePath(hostsFilePath)
+        }
+
         if let lookups = self.lookups {
             aresOptions.setLookups(lookups)
         }
@@ -174,11 +183,12 @@ extension AsyncDNSResolver.Options {
 ///
 /// `servers` /`nservers` and `sortlist`/`nsort` are configured by calling `ares_set_*`, which
 /// require `ares_channel` argument. Even though `ares_options` has dedicated fields for them, they
-/// will not be set here.
+/// are not set here but in `AresChannel` instead.
 class AresOptions {
     let pointer: UnsafeMutablePointer<ares_options>
 
     private var resolvConfPathPointer: UnsafeMutablePointer<CChar>?
+    private var hostsFilePathPointer: UnsafeMutablePointer<CChar>?
     private var lookupsPointer: UnsafeMutablePointer<CChar>?
     private var domainPointers: [UnsafeMutablePointer<CChar>?]?
 
@@ -190,13 +200,14 @@ class AresOptions {
         self._optionMasks.rawValue
     }
 
-    var _ares_options: ares_options {
+    var underlying: ares_options {
         self.pointer.pointee
     }
 
     deinit {
         self.pointer.deallocate()
         self.resolvConfPathPointer?.deallocate()
+        self.hostsFilePathPointer?.deallocate()
         self.lookupsPointer?.deallocate()
         self.domainPointers?.deallocate()
     }
@@ -210,9 +221,8 @@ class AresOptions {
         self.set(option: .FLAGS, keyPath: \.flags, value: flags)
     }
 
-    func setTimeout(_ timeout: CInt) {
-        self.set(option: .TIMEOUT, keyPath: \.timeout, value: timeout)
-        self._optionMasks.insert(.TIMEOUTMS)
+    func setTimeoutMillis(_ timeoutMillis: CInt) {
+        self.set(option: .TIMEOUTMS, keyPath: \.timeout, value: timeoutMillis)
     }
 
     func setTries(_ tries: CInt) {
@@ -258,6 +268,13 @@ class AresOptions {
         self.resolvConfPathPointer?.deallocate()
         self.resolvConfPathPointer = resolvConfPath.ccharArrayPointer
         self.set(option: .RESOLVCONF, keyPath: \.resolvconf_path, value: self.resolvConfPathPointer)
+    }
+
+    func setHostsFilePath(_ hostsFilePath: String) {
+        // The pointer is being replaced so deallocate it first
+        self.hostsFilePathPointer?.deallocate()
+        self.hostsFilePathPointer = hostsFilePath.ccharArrayPointer
+        self.set(option: .HOSTS_FILE, keyPath: \.hosts_path, value: self.hostsFilePathPointer)
     }
 
     func setLookups(_ lookups: String) {
@@ -306,15 +323,15 @@ class AresOptions {
     }
 
     private func set<T>(keyPath: WritableKeyPath<ares_options, T>, value: T) {
-        var _ares_options = self._ares_options
-        _ares_options[keyPath: keyPath] = value
-        self.pointer.pointee = _ares_options
+        var underlying = self.underlying
+        underlying[keyPath: keyPath] = value
+        self.pointer.pointee = underlying
     }
 
     private func set<T>(option: AresOptionMasks, keyPath: WritableKeyPath<ares_options, T?>, value: T?) {
-        var _ares_options = self._ares_options
-        _ares_options[keyPath: keyPath] = value
-        self.pointer.pointee = _ares_options
+        var underlying = self.underlying
+        underlying[keyPath: keyPath] = value
+        self.pointer.pointee = underlying
         self._optionMasks.insert(option)
     }
 }
@@ -344,21 +361,22 @@ struct AresOptionMasks: OptionSet {
     let rawValue: CInt
 
     static let FLAGS = AresOptionMasks(rawValue: ARES_OPT_FLAGS)
-    static let TIMEOUT = AresOptionMasks(rawValue: ARES_OPT_TIMEOUT)
-    static let TIMEOUTMS = AresOptionMasks(rawValue: ARES_OPT_TIMEOUTMS)
+    static let TIMEOUT = AresOptionMasks(rawValue: ARES_OPT_TIMEOUT) // Deprecated by TIMEOUTMS
     static let TRIES = AresOptionMasks(rawValue: ARES_OPT_TRIES)
     static let NDOTS = AresOptionMasks(rawValue: ARES_OPT_NDOTS)
     static let UDP_PORT = AresOptionMasks(rawValue: ARES_OPT_UDP_PORT)
     static let TCP_PORT = AresOptionMasks(rawValue: ARES_OPT_TCP_PORT)
+    static let SERVERS = AresOptionMasks(rawValue: ARES_OPT_SERVERS)
+    static let DOMAINS = AresOptionMasks(rawValue: ARES_OPT_DOMAINS)
+    static let LOOKUPS = AresOptionMasks(rawValue: ARES_OPT_LOOKUPS)
+    static let SOCK_STATE_CB = AresOptionMasks(rawValue: ARES_OPT_SOCK_STATE_CB)
+    static let SORTLIST = AresOptionMasks(rawValue: ARES_OPT_SORTLIST)
     static let SOCK_SNDBUF = AresOptionMasks(rawValue: ARES_OPT_SOCK_SNDBUF)
     static let SOCK_RCVBUF = AresOptionMasks(rawValue: ARES_OPT_SOCK_RCVBUF)
-    static let EDNSPSZ = AresOptionMasks(rawValue: ARES_OPT_EDNSPSZ)
+    static let TIMEOUTMS = AresOptionMasks(rawValue: ARES_OPT_TIMEOUTMS)
     static let ROTATE = AresOptionMasks(rawValue: ARES_OPT_ROTATE)
+    static let EDNSPSZ = AresOptionMasks(rawValue: ARES_OPT_EDNSPSZ)
     static let NOROTATE = AresOptionMasks(rawValue: ARES_OPT_NOROTATE)
     static let RESOLVCONF = AresOptionMasks(rawValue: ARES_OPT_RESOLVCONF)
-    static let LOOKUPS = AresOptionMasks(rawValue: ARES_OPT_LOOKUPS)
-    static let DOMAINS = AresOptionMasks(rawValue: ARES_OPT_DOMAINS)
-    static let SOCK_STATE_CB = AresOptionMasks(rawValue: ARES_OPT_SOCK_STATE_CB)
-    static let SERVERS = AresOptionMasks(rawValue: ARES_OPT_SERVERS)
-    static let SORTLIST = AresOptionMasks(rawValue: ARES_OPT_SORTLIST)
+    static let HOSTS_FILE = AresOptionMasks(rawValue: ARES_OPT_HOSTS_FILE)
 }

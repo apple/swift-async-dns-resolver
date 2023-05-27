@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2020 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2020-2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -17,7 +17,7 @@ import CAsyncDNSResolver
 import XCTest
 
 final class ChannelTests: XCTestCase {
-    func test_AresChannel() {
+    func test_init() async throws {
         let options = AresOptions()
 
         let servers = ["[2001:4860:4860::8888]:53", "130.155.0.1:53"]
@@ -29,6 +29,8 @@ final class ChannelTests: XCTestCase {
         guard let channel = try? AresChannel(options: options) else {
             return XCTFail("Channel not initialized")
         }
-        XCTAssertNotNil(channel.pointer?.pointee)
+        guard let _ = await channel.pointer.pointee else {
+            return XCTFail("Underlying ares_channel is nil")
+        }
     }
 }

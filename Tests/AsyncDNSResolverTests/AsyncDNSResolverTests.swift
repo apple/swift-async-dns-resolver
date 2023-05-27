@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2020 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2020-2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -14,248 +14,198 @@
 
 @testable import AsyncDNSResolver
 import CAsyncDNSResolver
-import Dispatch
 import XCTest
 
 final class AsyncDNSResolverTests: XCTestCase {
     var resolver: AsyncDNSResolver!
+    var verbose: Bool = false
 
     override func setUp() {
         super.setUp()
 
-        self.resolver = try! AsyncDNSResolver()
+        let servers = ProcessInfo.processInfo.environment["NAME_SERVERS"]?.split(separator: ",").map { String($0) }
+
+        var options = AsyncDNSResolver.Options()
+        options.servers = servers
+
+        self.resolver = try! AsyncDNSResolver(options: options)
+        self.verbose = ProcessInfo.processInfo.environment["VERBOSE_TESTS"] == "true"
     }
 
     override func tearDown() {
         super.tearDown()
-
         self.resolver = nil // FIXME: for tsan
     }
 
-    func test_queryA() throws {
-        self.resolver.query(.A(name: "apple.com") { result in
-            switch result {
-            case .success(let r):
-                print("A records: \(r)")
-            case .failure(let error):
-                print("Error: \(error)")
-            }
-        })
-
-        self.untilFinishOrTimeout(timeout: .seconds(3))
+    func test_queryA() async throws {
+        let reply = try await self.resolver.queryA(name: "apple.com")
+        if self.verbose {
+            print("test_queryA: \(reply)")
+        }
+        XCTAssertFalse(reply.addresses.isEmpty, "should have IP address(es)")
     }
 
-    func test_queryAAAA() throws {
-        self.resolver.query(.AAAA(name: "google.com") { result in
-            switch result {
-            case .success(let r):
-                print("AAAA records: \(r)")
-            case .failure(let error):
-                print("Error: \(error)")
-            }
-        })
-
-        self.untilFinishOrTimeout(timeout: .seconds(3))
+    func test_queryAAAA() async throws {
+        let reply = try await self.resolver.queryAAAA(name: "apple.com")
+        if self.verbose {
+            print("test_queryAAAA: \(reply)")
+        }
+        XCTAssertFalse(reply.addresses.isEmpty, "should have IP address(es)")
     }
 
-    func test_queryNS() throws {
-        self.resolver.query(.NS(name: "apple.com") { result in
-            switch result {
-            case .success(let r):
-                print("NS records: \(r)")
-            case .failure(let error):
-                print("Error: \(error)")
-            }
-        })
-
-        self.untilFinishOrTimeout(timeout: .seconds(3))
+    func test_queryNS() async throws {
+        let reply = try await self.resolver.queryNS(name: "apple.com")
+        if self.verbose {
+            print("test_queryNS: \(reply)")
+        }
+        XCTAssertFalse(reply.nameservers.isEmpty, "should have nameserver(s)")
     }
 
-    func test_queryCNAME() throws {
-        self.resolver.query(.CNAME(name: "www.apple.com") { result in
-            switch result {
-            case .success(let r):
-                print("CNAME record: \(r)")
-            case .failure(let error):
-                print("Error: \(error)")
-            }
-        })
-
-        self.untilFinishOrTimeout(timeout: .seconds(3))
+    func test_queryCNAME() async throws {
+        let reply = try await self.resolver.queryCNAME(name: "www.apple.com")
+        if self.verbose {
+            print("test_queryCNAME: \(reply)")
+        }
+        XCTAssertFalse(reply.isEmpty, "should have CNAME")
     }
 
-    func test_querySOA() throws {
-        self.resolver.query(.SOA(name: "apple.com") { result in
-            switch result {
-            case .success(let r):
-                print("SOA records: \(r)")
-            case .failure(let error):
-                print("Error: \(error)")
-            }
-        })
-
-        self.untilFinishOrTimeout(timeout: .seconds(3))
+    func test_querySOA() async throws {
+        let reply = try await self.resolver.querySOA(name: "apple.com")
+        if self.verbose {
+            print("test_querySOA: \(reply)")
+        }
+        XCTAssertFalse(reply.mname?.isEmpty ?? true, "should have nameserver")
     }
 
-    func test_queryPTR() throws {
-        self.resolver.query(.PTR(name: "47.224.172.17.in-addr.arpa") { result in
-            switch result {
-            case .success(let r):
-                print("PTR records: \(r)")
-            case .failure(let error):
-                print("Error: \(error)")
-            }
-        })
-
-        self.untilFinishOrTimeout(timeout: .seconds(3))
+    func test_queryPTR() async throws {
+        let reply = try await self.resolver.queryPTR(name: "47.224.172.17.in-addr.arpa")
+        if self.verbose {
+            print("test_queryPTR: \(reply)")
+        }
+        XCTAssertFalse(reply.names.isEmpty, "should have names")
     }
 
-    func test_queryMX() throws {
-        self.resolver.query(.MX(name: "apple.com") { result in
-            switch result {
-            case .success(let r):
-                print("MX records: \(r)")
-            case .failure(let error):
-                print("Error: \(error)")
-            }
-        })
-
-        self.untilFinishOrTimeout(timeout: .seconds(3))
+    func test_queryMX() async throws {
+        let reply = try await self.resolver.queryMX(name: "apple.com")
+        if self.verbose {
+            print("test_queryMX: \(reply)")
+        }
+        XCTAssertFalse(reply.isEmpty, "should have MX record(s)")
     }
 
-    func test_queryTXT() throws {
-        self.resolver.query(.TXT(name: "apple.com") { result in
-            switch result {
-            case .success(let r):
-                print("TXT records: \(r)")
-            case .failure(let error):
-                print("Error: \(error)")
-            }
-        })
-
-        self.untilFinishOrTimeout(timeout: .seconds(3))
+    func test_queryTXT() async throws {
+        let reply = try await self.resolver.queryTXT(name: "apple.com")
+        if self.verbose {
+            print("test_queryTXT: \(reply)")
+        }
+        XCTAssertFalse(reply.isEmpty, "should have TXT record(s)")
     }
 
-    func test_querySRV() throws {
-        self.resolver.query(.SRV(name: "_caldavs._tcp.google.com") { result in
-            switch result {
-            case .success(let r):
-                print("SRV records: \(r)")
-            case .failure(let e):
-                print("Error: \(e)")
-            }
-        })
-
-        self.untilFinishOrTimeout(timeout: .seconds(3))
+    func test_querySRV() async throws {
+        let reply = try await self.resolver.querySRV(name: "_caldavs._tcp.google.com")
+        if self.verbose {
+            print("test_querySRV: \(reply)")
+        }
+        XCTAssertFalse(reply.isEmpty, "should have SRV record(s)")
     }
 
-    func test_queryNAPTR() throws {
-        self.resolver.query(.NAPTR(name: "apple.com") { result in
-            switch result {
-            case .success(let r):
-                print("NAPTR records: \(r)")
-            case .failure(let e):
-                print("Error: \(e)")
+    func test_queryNAPTR() async throws {
+        do {
+            // expected: "no data" error
+            let reply = try await self.resolver.queryNAPTR(name: "apple.com")
+            if self.verbose {
+                print("test_queryNAPTR: \(reply)")
             }
-        })
-
-        self.untilFinishOrTimeout(timeout: .seconds(3))
-    }
-
-    func test_concurrency() throws {
-        func run(times: Int = 100, timeout: DispatchTimeInterval = .seconds(5), _ query: (_ index: Int) -> Void) {
-            for i in 1 ... times {
-                query(i)
-            }
-            self.untilFinishOrTimeout(timeout: timeout)
-        }
-
-        run { i in
-            self.resolver.query(.A(name: "apple.com") { result in
-                print("[A] Run #\(i) result: \(result)")
-            })
-        }
-        run { i in
-            self.resolver.query(.AAAA(name: "google.com") { result in
-                print("[AAAA] Run #\(i) result: \(result)")
-            })
-        }
-        run { i in
-            self.resolver.query(.NS(name: "apple.com") { result in
-                print("[NS] Run #\(i) result: \(result)")
-            })
-        }
-        run { i in
-            self.resolver.query(.CNAME(name: "www.apple.com") { result in
-                print("[CNAME] Run #\(i) result: \(result)")
-            })
-        }
-        run { i in
-            self.resolver.query(.SOA(name: "apple.com") { result in
-                print("[SOA] Run #\(i) result: \(result)")
-            })
-        }
-        run { i in
-            self.resolver.query(.PTR(name: "47.224.172.17.in-addr.arpa") { result in
-                print("[PTR] Run #\(i) result: \(result)")
-            })
-        }
-        run { i in
-            self.resolver.query(.MX(name: "apple.com") { result in
-                print("[MX] Run #\(i) result: \(result)")
-            })
-        }
-        run { i in
-            self.resolver.query(.TXT(name: "apple.com") { result in
-                print("[TXT] Run #\(i) result: \(result)")
-            })
-        }
-        run { i in
-            self.resolver.query(.SRV(name: "_caldavs._tcp.google.com") { result in
-                print("[SRV] Run #\(i) result: \(result)")
-            })
-        }
-        run { i in
-            self.resolver.query(.NAPTR(name: "apple.com") { result in
-                print("[NAPTR] Run #\(i) result: \(result)")
-            })
+        } catch {
+            print("test_queryNAPTR error: \(error)")
         }
     }
 
-    /// Waits until channel has no more pending queries or times out.
-    ///
-    /// - SeeAlso: // https://c-ares.haxx.se/ares_process.html
-    private func untilFinishOrTimeout(timeout: DispatchTimeInterval) {
-        let read = UnsafeMutablePointer<fd_set>.allocate(capacity: 1)
-        let write = UnsafeMutablePointer<fd_set>.allocate(capacity: 1)
-        defer {
-            read.deallocate()
-            write.deallocate()
-        }
-
-        let start = DispatchTime.now()
-        let deadline = start + timeout
-        var done = false
-
-        while !done {
-            if DispatchTime.now() >= deadline {
-                return XCTFail("Query timed out")
-            }
-
-            // Allow some time for query to start
-            usleep(100_000)
-
-            read.pointee = fd_set()
-            write.pointee = fd_set()
-
-            self.resolver.ares.channel.withChannel { channel in
-                if ares_fds(channel, read, write) == 0 {
-                    done = true
-                    return
+    func test_concurrency() async throws {
+        func run(
+            times: Int = 100,
+            _ query: @escaping (_ index: Int) async throws -> Void
+        ) async throws {
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                for i in 1 ... times {
+                    group.addTask {
+                        try await query(i)
+                    }
                 }
-                // No need to "poke" ares because we have QueryProcessor
-                // ares_process(channel, read, write)
+                for try await _ in group {}
             }
         }
+
+        try await run { i in
+            let reply = try await self.resolver.queryA(name: "apple.com")
+            if self.verbose {
+                print("[A] run #\(i) result: \(reply)")
+            }
+        }
+
+        try await run { i in
+            let reply = try await self.resolver.queryAAAA(name: "apple.com")
+            if self.verbose {
+                print("[AAAA] run #\(i) result: \(reply)")
+            }
+        }
+
+        try await run { i in
+            let reply = try await self.resolver.queryNS(name: "apple.com")
+            if self.verbose {
+                print("[NS] run #\(i) result: \(reply)")
+            }
+        }
+
+        try await run { i in
+            let reply = try await self.resolver.queryCNAME(name: "www.apple.com")
+            if self.verbose {
+                print("[CNAME] run #\(i) result: \(reply)")
+            }
+        }
+
+        try await run { i in
+            let reply = try await self.resolver.querySOA(name: "apple.com")
+            if self.verbose {
+                print("[SOA] run #\(i) result: \(reply)")
+            }
+        }
+
+        try await run { i in
+            let reply = try await self.resolver.queryPTR(name: "47.224.172.17.in-addr.arpa")
+            if self.verbose {
+                print("[PTR] run #\(i) result: \(reply)")
+            }
+        }
+
+        try await run { i in
+            let reply = try await self.resolver.queryMX(name: "apple.com")
+            if self.verbose {
+                print("[MX] run #\(i) result: \(reply)")
+            }
+        }
+
+        try await run { i in
+            let reply = try await self.resolver.queryTXT(name: "apple.com")
+            if self.verbose {
+                print("[TXT] run #\(i) result: \(reply)")
+            }
+        }
+
+        try await run { i in
+            let reply = try await self.resolver.querySRV(name: "_caldavs._tcp.google.com")
+            if self.verbose {
+                print("[SRV] run #\(i) result: \(reply)")
+            }
+        }
+
+        /* expected: "no data" error
+         try await run { i in
+             let reply = try await self.resolver.queryNAPTR(name: "apple.com")
+             if self.verbose {
+                 print("[NAPTR] run #\(i) result: \(reply)")
+             }
+         }
+          */
     }
 }

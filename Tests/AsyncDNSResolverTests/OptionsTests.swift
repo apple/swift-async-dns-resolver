@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2020 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2020-2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -20,7 +20,7 @@ final class OptionsTests: XCTestCase {
     private typealias Options = AsyncDNSResolver.Options
     private typealias Flags = AsyncDNSResolver.Options.Flags
 
-    func test_Flags() {
+    func test_flags() {
         let flags: Flags = [.NOALIASES, .IGNTC, .NOSEARCH]
         let expected = Flags.NOALIASES.rawValue | Flags.IGNTC.rawValue | Flags.NOSEARCH.rawValue
         XCTAssertEqual(flags.rawValue, expected, "Expected value to be \(expected), got \(flags.rawValue)")
@@ -40,6 +40,7 @@ final class OptionsTests: XCTestCase {
         options.socketReceiveBufferSize = 2048
         options.ednsPacketSize = 512
         options.resolvConfPath = "/foo/bar"
+        options.hostsFilePath = "/foo/baz"
         options.lookups = "bf"
         options.domains = ["foo", "bar", "baz"]
         options.servers = ["dns-one.local", "dns-two.local"]
@@ -52,7 +53,7 @@ final class OptionsTests: XCTestCase {
         self.ensureOptionMaskSet(aresOptions, .FLAGS)
 
         self.assertKeyPathValue(options: aresOptions, keyPath: \.timeout, expected: options.timeoutMillis)
-        self.ensureOptionMaskSet(aresOptions, .TIMEOUT)
+        self.ensureOptionMaskSet(aresOptions, .TIMEOUTMS)
 
         self.assertKeyPathValue(options: aresOptions, keyPath: \.tries, expected: options.attempts)
         self.ensureOptionMaskSet(aresOptions, .TRIES)
@@ -78,6 +79,9 @@ final class OptionsTests: XCTestCase {
         self.assertKeyPathValue(options: aresOptions, keyPath: \.resolvconf_path, expected: options.resolvConfPath!)
         self.ensureOptionMaskSet(aresOptions, .RESOLVCONF)
 
+        self.assertKeyPathValue(options: aresOptions, keyPath: \.hosts_path, expected: options.hostsFilePath!)
+        self.ensureOptionMaskSet(aresOptions, .HOSTS_FILE)
+
         self.assertKeyPathValue(options: aresOptions, keyPath: \.lookups, expected: options.lookups!)
         self.ensureOptionMaskSet(aresOptions, .LOOKUPS)
 
@@ -89,34 +93,35 @@ final class OptionsTests: XCTestCase {
         XCTAssertEqual(aresOptions.servers, options.servers, "Expected servers to be \(options.servers!), got \(aresOptions.servers!)")
 
         XCTAssertNotNil(aresOptions.sortlist)
-        XCTAssertEqual(aresOptions.sortlist, options.sortlist, "Expected sortList to be \(options.sortlist!), got \(aresOptions.sortlist!)")
+        XCTAssertEqual(aresOptions.sortlist, options.sortlist, "Expected sortlist to be \(options.sortlist!), got \(aresOptions.sortlist!)")
     }
 
-    func test_Options_rotateNotSet() {
+    func test_rotate() {
         var options = Options()
-        options.rotate = nil
 
-        let aresOptions = options.aresOptions
-        XCTAssertFalse(aresOptions._optionMasks.contains(.ROTATE))
-        XCTAssertFalse(aresOptions._optionMasks.contains(.NOROTATE))
-    }
+        do {
+            options.rotate = nil
 
-    func test_Options_rotateTrue() {
-        var options = Options()
-        options.rotate = true
+            let aresOptions = options.aresOptions
+            XCTAssertFalse(aresOptions._optionMasks.contains(.ROTATE))
+            XCTAssertFalse(aresOptions._optionMasks.contains(.NOROTATE))
+        }
 
-        let aresOptions = options.aresOptions
-        XCTAssertTrue(aresOptions._optionMasks.contains(.ROTATE))
-        XCTAssertFalse(aresOptions._optionMasks.contains(.NOROTATE))
-    }
+        do {
+            options.rotate = true
 
-    func test_Options_rotateFalse() {
-        var options = Options()
-        options.rotate = false
+            let aresOptions = options.aresOptions
+            XCTAssertTrue(aresOptions._optionMasks.contains(.ROTATE))
+            XCTAssertFalse(aresOptions._optionMasks.contains(.NOROTATE))
+        }
 
-        let aresOptions = options.aresOptions
-        XCTAssertFalse(aresOptions._optionMasks.contains(.ROTATE))
-        XCTAssertTrue(aresOptions._optionMasks.contains(.NOROTATE))
+        do {
+            options.rotate = false
+
+            let aresOptions = options.aresOptions
+            XCTAssertFalse(aresOptions._optionMasks.contains(.ROTATE))
+            XCTAssertTrue(aresOptions._optionMasks.contains(.NOROTATE))
+        }
     }
 
     func test_AresOptions_socketStateCallback() {
@@ -126,25 +131,36 @@ final class OptionsTests: XCTestCase {
         defer { dataPointer.deallocate() }
 
         options.setSocketStateCallback(with: dataPointer) { _, _, _, _ in }
-        XCTAssertNotNil(options._ares_options.sock_state_cb, "Expected sock_state_cb to be non nil")
-        XCTAssertNotNil(options._ares_options.sock_state_cb_data, "Expected sock_state_cb_data to be non nil")
+        XCTAssertNotNil(options.underlying.sock_state_cb, "Expected sock_state_cb to be non nil")
+        XCTAssertNotNil(options.underlying.sock_state_cb_data, "Expected sock_state_cb_data to be non nil")
         self.ensureOptionMaskSet(options, .SOCK_STATE_CB)
     }
 
-    private func assertKeyPathValue<T>(options: AresOptions, keyPath: KeyPath<ares_options, T>, expected: T) where T: Equatable {
-        let actual = options._ares_options[keyPath: keyPath]
+    private func assertKeyPathValue<T>(
+        options: AresOptions,
+        keyPath: KeyPath<ares_options, T>, expected: T
+    ) where T: Equatable {
+        let actual = options.underlying[keyPath: keyPath]
         XCTAssertEqual(actual, expected, "Expected \(keyPath) to be \(expected), got \(actual)")
     }
 
-    private func assertKeyPathValue(options: AresOptions, keyPath: KeyPath<ares_options, UnsafeMutablePointer<CChar>?>, expected: String) {
-        let actualPointer = options._ares_options[keyPath: keyPath]
+    private func assertKeyPathValue(
+        options: AresOptions,
+        keyPath: KeyPath<ares_options, UnsafeMutablePointer<CChar>?>,
+        expected: String
+    ) {
+        let actualPointer = options.underlying[keyPath: keyPath]
         XCTAssertNotNil(actualPointer, "Expected \(keyPath) to be non nil")
         let actual = String(cString: actualPointer!) // !-safe since we check for nil
         XCTAssertEqual(actual, expected, "Expected \(keyPath) to be \(expected), got \(actual)")
     }
 
-    private func assertKeyPathValue(options: AresOptions, keyPath: KeyPath<ares_options, UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?>, expected: [String]) {
-        let actualPointer = options._ares_options[keyPath: keyPath]
+    private func assertKeyPathValue(
+        options: AresOptions,
+        keyPath: KeyPath<ares_options, UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?>,
+        expected: [String]
+    ) {
+        let actualPointer = options.underlying[keyPath: keyPath]
         XCTAssertNotNil(actualPointer, "Expected \(keyPath) to be non nil")
         let actual = Array(UnsafeBufferPointer(start: actualPointer!, count: expected.count))
             .map { $0.map { String(cString: $0) } }
