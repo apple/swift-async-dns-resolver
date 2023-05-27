@@ -13,7 +13,6 @@
 //===----------------------------------------------------------------------===//
 
 import CAsyncDNSResolver
-import Dispatch
 import Logging
 
 // MARK: - Async DNS resolver API
@@ -113,26 +112,26 @@ class Ares {
             let handler = QueryReplyHandler(parser: replyParser, continuation)
 
             // Wrap `handler` into a pointer so we can pass it to callback. The pointer will be deallocated in there later.
-            let argPointer = UnsafeMutableRawPointer.allocate(
+            let handlerPointer = UnsafeMutableRawPointer.allocate(
                 byteCount: MemoryLayout<QueryReplyHandler>.stride,
                 alignment: MemoryLayout<QueryReplyHandler>.alignment
             )
-            argPointer.initializeMemory(as: QueryReplyHandler.self, repeating: handler, count: 1)
+            handlerPointer.initializeMemory(as: QueryReplyHandler.self, repeating: handler, count: 1)
 
             let queryCallback: QueryCallback = { arg, status, _, buf, len in
-                guard let argPointer = arg else {
+                guard let handlerPointer = arg else {
                     preconditionFailure("'arg' is nil. This is a bug.")
                 }
 
-                let handler = QueryReplyHandler(pointer: argPointer)
-                defer { argPointer.deallocate() }
+                let handler = QueryReplyHandler(pointer: handlerPointer)
+                defer { handlerPointer.deallocate() }
 
                 handler.handle(status: status, buffer: buf, length: len)
             }
 
             Task {
                 await self.channel.withChannel { channel in
-                    ares_query(channel, name, DNSClass.IN.rawValue, type.rawValue, queryCallback, argPointer)
+                    ares_query(channel, name, DNSClass.IN.rawValue, type.rawValue, queryCallback, handlerPointer)
                 }
             }
         }
@@ -165,14 +164,14 @@ extension Ares {
     // https://github.com/dimbleby/rust-c-ares/blob/master/src/channel.rs
     // https://github.com/dimbleby/rust-c-ares/blob/master/examples/event-loop.rs
     class QueryProcessor {
-        private let queue = DispatchQueue(label: "c-ares.process.queue")
+        static let defaultPollInterval: UInt64 = 10 * 1_000_000 // 10ms
 
         private let channel: AresChannel
-        private let pollInterval: DispatchTimeInterval
+        private let pollIntervalNanos: UInt64
 
-        init(channel: AresChannel, pollInterval: DispatchTimeInterval = .milliseconds(10)) {
+        init(channel: AresChannel, pollIntervalNanos: UInt64 = QueryProcessor.defaultPollInterval) {
             self.channel = channel
-            self.pollInterval = pollInterval
+            self.pollIntervalNanos = pollIntervalNanos
         }
 
         /// Asks c-ares for the set of socket descriptors we are waiting on for the `ares_channel`'s pending queries
@@ -209,10 +208,9 @@ extension Ares {
         }
 
         private func schedule() {
-            self.queue.asyncAfter(deadline: DispatchTime.now() + self.pollInterval) { [weak self] in
-                if let self = self {
-                    Task { await self.poll() }
-                }
+            Task {
+                try await Task.sleep(nanoseconds: self.pollIntervalNanos)
+                await self.poll()
             }
         }
     }
