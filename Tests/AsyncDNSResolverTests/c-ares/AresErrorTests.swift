@@ -16,7 +16,7 @@
 import CAsyncDNSResolver
 import XCTest
 
-final class ErrorTests: XCTestCase {
+final class AresErrorTests: XCTestCase {
     func test_initFromCode() {
         let code = ARES_ENODATA
         let error = AsyncDNSResolver.Error(code: code, "some error")

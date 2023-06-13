@@ -12,10 +12,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-import CAsyncDNSResolver
-
-// MARK: - Async DNS resolver errors
-
 extension AsyncDNSResolver {
     public struct Error: Swift.Error, CustomStringConvertible {
         enum Code: Equatable, CustomStringConvertible {
@@ -43,7 +39,7 @@ extension AsyncDNSResolver {
             case initError(String?)
             case cancelled(String?)
             case service(String?)
-            case other(code: Int32, String?)
+            case other(code: Int, String?)
 
             var description: String {
                 switch self {
@@ -105,61 +101,6 @@ extension AsyncDNSResolver {
 
         private init(code: Code) {
             self.code = code
-        }
-
-        init(code: Int32, _ description: String? = nil) {
-            switch code {
-            case ARES_ENODATA:
-                self = .noData(description)
-            case ARES_EFORMERR:
-                self = .invalidQuery(description)
-            case ARES_ESERVFAIL:
-                self = .serverFailure(description)
-            case ARES_ENOTFOUND:
-                self = .notFound(description)
-            case ARES_ENOTIMP:
-                self = .notImplemented(description)
-            case ARES_EREFUSED:
-                self = .serverRefused(description)
-            case ARES_EBADQUERY:
-                self = .badQuery(description)
-            case ARES_EBADNAME:
-                self = .badName(description)
-            case ARES_EBADFAMILY:
-                self = .badFamily(description)
-            case ARES_EBADRESP:
-                self = .badResponse(description)
-            case ARES_ECONNREFUSED:
-                self = .connectionRefused(description)
-            case ARES_ETIMEOUT:
-                self = .timeout(description)
-            case ARES_EOF:
-                self = .eof(description)
-            case ARES_EFILE:
-                self = .fileIO(description)
-            case ARES_ENOMEM:
-                self = .noMemory(description)
-            case ARES_EDESTRUCTION:
-                self = .destruction(description)
-            case ARES_EBADSTR:
-                self = .badString(description)
-            case ARES_EBADFLAGS:
-                self = .badFlags(description)
-            case ARES_ENONAME:
-                self = .noName(description)
-            case ARES_EBADHINTS:
-                self = .badHints(description)
-            case ARES_ENOTINITIALIZED:
-                self = .notInitialized(description)
-            case ARES_ELOADIPHLPAPI, ARES_EADDRGETNETWORKPARAMS:
-                self = .initError(description)
-            case ARES_ECANCELLED:
-                self = .cancelled(description)
-            case ARES_ESERVICE:
-                self = .service(description)
-            default:
-                self = .other(code: code, description)
-            }
         }
 
         public var description: String {
@@ -262,7 +203,7 @@ extension AsyncDNSResolver {
             .init(code: .service(description))
         }
 
-        public static func other(code: Int32, _ description: String? = nil) -> Error {
+        public static func other(code: Int, _ description: String? = nil) -> Error {
             .init(code: .other(code: code, description))
         }
     }

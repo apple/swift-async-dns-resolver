@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2020-2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -13,22 +13,17 @@
 //===----------------------------------------------------------------------===//
 
 @testable import AsyncDNSResolver
-import CAsyncDNSResolver
 import XCTest
 
-final class AsyncDNSResolverTests: XCTestCase {
-    var resolver: AsyncDNSResolver!
+#if canImport(Darwin)
+final class DNSSDDNSResolverTests: XCTestCase {
+    var resolver: DNSSDDNSResolver!
     var verbose: Bool = false
 
     override func setUp() {
         super.setUp()
 
-        let servers = ProcessInfo.processInfo.environment["NAME_SERVERS"]?.split(separator: ",").map { String($0) }
-
-        var options = AsyncDNSResolver.Options()
-        options.servers = servers
-
-        self.resolver = try! AsyncDNSResolver(options: options)
+        self.resolver = DNSSDDNSResolver()
         self.verbose = ProcessInfo.processInfo.environment["VERBOSE_TESTS"] == "true"
     }
 
@@ -42,7 +37,7 @@ final class AsyncDNSResolverTests: XCTestCase {
         if self.verbose {
             print("test_queryA: \(reply)")
         }
-        XCTAssertFalse(reply.addresses.isEmpty, "should have IP address(es)")
+        XCTAssertFalse(reply.isEmpty, "should have A record(s)")
     }
 
     func test_queryAAAA() async throws {
@@ -50,7 +45,7 @@ final class AsyncDNSResolverTests: XCTestCase {
         if self.verbose {
             print("test_queryAAAA: \(reply)")
         }
-        XCTAssertFalse(reply.addresses.isEmpty, "should have IP address(es)")
+        XCTAssertFalse(reply.isEmpty, "should have AAAA record(s)")
     }
 
     func test_queryNS() async throws {
@@ -107,18 +102,6 @@ final class AsyncDNSResolverTests: XCTestCase {
             print("test_querySRV: \(reply)")
         }
         XCTAssertFalse(reply.isEmpty, "should have SRV record(s)")
-    }
-
-    func test_queryNAPTR() async throws {
-        do {
-            // expected: "no data" error
-            let reply = try await self.resolver.queryNAPTR(name: "apple.com")
-            if self.verbose {
-                print("test_queryNAPTR: \(reply)")
-            }
-        } catch {
-            print("test_queryNAPTR error: \(error)")
-        }
     }
 
     func test_concurrency() async throws {
@@ -198,14 +181,6 @@ final class AsyncDNSResolverTests: XCTestCase {
                 print("[SRV] run #\(i) result: \(reply)")
             }
         }
-
-        /* expected: "no data" error
-         try await run { i in
-             let reply = try await self.resolver.queryNAPTR(name: "apple.com")
-             if self.verbose {
-                 print("[NAPTR] run #\(i) result: \(reply)")
-             }
-         }
-          */
     }
 }
+#endif

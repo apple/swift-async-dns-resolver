@@ -16,9 +16,9 @@
 import CAsyncDNSResolver
 import XCTest
 
-final class OptionsTests: XCTestCase {
-    private typealias Options = AsyncDNSResolver.Options
-    private typealias Flags = AsyncDNSResolver.Options.Flags
+final class AresOptionsTests: XCTestCase {
+    private typealias Options = CAresDNSResolver.Options
+    private typealias Flags = CAresDNSResolver.Options.Flags
 
     func test_flags() {
         let flags: Flags = [.NOALIASES, .IGNTC, .NOSEARCH]
