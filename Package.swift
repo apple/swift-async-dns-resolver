@@ -28,7 +28,7 @@ let package = Package(
         .library(name: "AsyncDNSResolver", targets: ["AsyncDNSResolver"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-nio", .upToNextMinor(from: "2.53.0")),
+        .package(url: "https://github.com/apple/swift-nio", .upToNextMajor(from: "2.53.0")),
     ],
     targets: [
         .target(
