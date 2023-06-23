@@ -1,4 +1,4 @@
-# Swift Asynchronous DNS Resolver
+# ``AsyncDNSResolver``
 
 A Swift library for asynchronous DNS queries.
 

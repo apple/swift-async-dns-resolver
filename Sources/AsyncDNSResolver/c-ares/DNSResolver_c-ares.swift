@@ -14,56 +14,76 @@
 
 import CAsyncDNSResolver
 
-/// DNSResolver implementation backed by c-ares.
+/// ``DNSResolver`` implementation backed by c-ares C library.
 public class CAresDNSResolver: DNSResolver {
     let options: Options
     let ares: Ares
 
+    /// Initialize a `CAresDNSResolver` with the given options.
+    ///
+    /// - Parameters:
+    ///   - options: ``CAresDNSResolver/Options`` to create resolver with.
     public init(options: Options) throws {
         self.options = options
         self.ares = try Ares(options: options.aresOptions)
     }
 
+    /// Initialize a `CAresDNSResolver` using default options.
     public convenience init() throws {
         try self.init(options: .default)
     }
 
+    /// See ``DNSResolver/queryA(name:)``.
     public func queryA(name: String) async throws -> [ARecord] {
         try await self.ares.query(type: .A, name: name, replyParser: Ares.AQueryReplyParser.instance)
     }
 
+    /// See ``DNSResolver/queryAAAA(name:)``.
     public func queryAAAA(name: String) async throws -> [AAAARecord] {
         try await self.ares.query(type: .AAAA, name: name, replyParser: Ares.AAAAQueryReplyParser.instance)
     }
 
+    /// See ``DNSResolver/queryNS(name:)``.
     public func queryNS(name: String) async throws -> NSRecord {
         try await self.ares.query(type: .NS, name: name, replyParser: Ares.NSQueryReplyParser.instance)
     }
 
+    /// See ``DNSResolver/queryCNAME(name:)``.
     public func queryCNAME(name: String) async throws -> String {
         try await self.ares.query(type: .CNAME, name: name, replyParser: Ares.CNAMEQueryReplyParser.instance)
     }
 
+    /// See ``DNSResolver/querySOA(name:)``.
     public func querySOA(name: String) async throws -> SOARecord {
         try await self.ares.query(type: .SOA, name: name, replyParser: Ares.SOAQueryReplyParser.instance)
     }
 
+    /// See ``DNSResolver/queryPTR(name:)``.
     public func queryPTR(name: String) async throws -> PTRRecord {
         try await self.ares.query(type: .PTR, name: name, replyParser: Ares.PTRQueryReplyParser.instance)
     }
 
+    /// See ``DNSResolver/queryMX(name:)``.
     public func queryMX(name: String) async throws -> [MXRecord] {
         try await self.ares.query(type: .MX, name: name, replyParser: Ares.MXQueryReplyParser.instance)
     }
 
+    /// See ``DNSResolver/queryTXT(name:)``.
     public func queryTXT(name: String) async throws -> [TXTRecord] {
         try await self.ares.query(type: .TXT, name: name, replyParser: Ares.TXTQueryReplyParser.instance)
     }
 
+    /// See ``DNSResolver/querySRV(name:)``.
     public func querySRV(name: String) async throws -> [SRVRecord] {
         try await self.ares.query(type: .SRV, name: name, replyParser: Ares.SRVQueryReplyParser.instance)
     }
 
+    /// Lookup NAPTR records associated with `name`.
+    ///
+    /// - Parameters:
+    ///   - name: The name to resolve.
+    ///
+    /// - Returns: ``NAPTRRecord``s for the given name.
     public func queryNAPTR(name: String) async throws -> [NAPTRRecord] {
         try await self.ares.query(type: .NAPTR, name: name, replyParser: Ares.NAPTRQueryReplyParser.instance)
     }
