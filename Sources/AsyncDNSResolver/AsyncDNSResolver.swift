@@ -37,7 +37,7 @@ public struct AsyncDNSResolver {
     public init(_ dnsResolver: DNSResolver) {
         self.underlying = dnsResolver
     }
-    
+
     /// Initialize an `AsyncDNSResolver` backed by ``CAresDNSResolver``
     /// created using the given options.
     ///
