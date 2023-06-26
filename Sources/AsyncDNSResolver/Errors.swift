@@ -13,6 +13,7 @@
 //===----------------------------------------------------------------------===//
 
 extension AsyncDNSResolver {
+    /// Possible ``AsyncDNSResolver/AsyncDNSResolver`` errors.
     public struct Error: Swift.Error, CustomStringConvertible {
         enum Code: Equatable, CustomStringConvertible {
             case noData(String?)

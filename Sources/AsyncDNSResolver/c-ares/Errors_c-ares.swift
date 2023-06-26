@@ -15,7 +15,7 @@
 import CAsyncDNSResolver
 
 extension AsyncDNSResolver.Error {
-    /// Create error from c-ares error code.
+    /// Create an ``AsyncDNSResolver/AsyncDNSResolver/Error`` from c-ares error code.
     init(code: Int32, _ description: String? = nil) {
         switch code {
         case ARES_ENODATA:

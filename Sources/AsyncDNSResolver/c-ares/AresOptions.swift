@@ -17,6 +17,7 @@ import CAsyncDNSResolver
 // MARK: - Options for `CAresDNSResolver`
 
 extension CAresDNSResolver {
+    /// Options for ``CAresDNSResolver``.
     public struct Options {
         public static var `default`: Options {
             .init()
@@ -24,7 +25,7 @@ extension CAresDNSResolver {
 
         /// Flags controlling the behavior of the resolver.
         ///
-        /// - SeeAlso: `AsyncDNSResolver.Options.Flags`
+        /// - SeeAlso: ``CAresDNSResolver/Options/Flags``
         public var flags: Flags = .init()
 
         /// The number of milliseconds each name server is given to respond to a query on the first try. (After the first try, the

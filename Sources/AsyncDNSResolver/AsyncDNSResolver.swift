@@ -14,9 +14,14 @@
 
 // MARK: - Async DNS resolver API
 
+/// `AsyncDNSResolver` provides API for running asynchronous DNS queries.
 public struct AsyncDNSResolver {
     let underlying: DNSResolver
 
+    /// Initialize an `AsyncDNSResolver`.
+    ///
+    /// By default, this makes use of the `dnssd` framework on Darwin platforms,
+    /// and the `c-ares` C library on others.
     public init() throws {
         #if canImport(Darwin)
         self.init(DNSSDDNSResolver())
@@ -25,77 +30,141 @@ public struct AsyncDNSResolver {
         #endif
     }
 
-    public init(options: CAresDNSResolver.Options) throws {
-        self.init(try CAresDNSResolver(options: options))
-    }
-
+    /// Initialize an `AsyncDNSResolver` using the given ``DNSResolver``.
+    ///
+    /// - Parameters:
+    ///   - dnsResolver: The ``DNSResolver`` to use.
     public init(_ dnsResolver: DNSResolver) {
         self.underlying = dnsResolver
     }
 
+    /// Initialize an `AsyncDNSResolver` backed by ``CAresDNSResolver``
+    /// created using the given options.
+    ///
+    /// - Parameters:
+    ///   - options: Options to create ``CAresDNSResolver`` with.
+    public init(options: CAresDNSResolver.Options) throws {
+        self.init(try CAresDNSResolver(options: options))
+    }
+
+    /// See ``DNSResolver/queryA(name:)``.
     public func queryA(name: String) async throws -> [ARecord] {
         try await self.underlying.queryA(name: name)
     }
 
+    /// See ``DNSResolver/queryAAAA(name:)``.
     public func queryAAAA(name: String) async throws -> [AAAARecord] {
         try await self.underlying.queryAAAA(name: name)
     }
 
+    /// See ``DNSResolver/queryNS(name:)``.
     public func queryNS(name: String) async throws -> NSRecord {
         try await self.underlying.queryNS(name: name)
     }
 
+    /// See ``DNSResolver/queryCNAME(name:)``.
     public func queryCNAME(name: String) async throws -> String {
         try await self.underlying.queryCNAME(name: name)
     }
 
+    /// See ``DNSResolver/querySOA(name:)``.
     public func querySOA(name: String) async throws -> SOARecord {
         try await self.underlying.querySOA(name: name)
     }
 
+    /// See ``DNSResolver/queryPTR(name:)``.
     public func queryPTR(name: String) async throws -> PTRRecord {
         try await self.underlying.queryPTR(name: name)
     }
 
+    /// See ``DNSResolver/queryMX(name:)``.
     public func queryMX(name: String) async throws -> [MXRecord] {
         try await self.underlying.queryMX(name: name)
     }
 
+    /// See ``DNSResolver/queryTXT(name:)``.
     public func queryTXT(name: String) async throws -> [TXTRecord] {
         try await self.underlying.queryTXT(name: name)
     }
 
+    /// See ``DNSResolver/querySRV(name:)``.
     public func querySRV(name: String) async throws -> [SRVRecord] {
         try await self.underlying.querySRV(name: name)
     }
 }
 
+/// API for running DNS queries.
 public protocol DNSResolver {
-    /// Lookup A record associated with `name`.
+    /// Lookup A records associated with `name`.
+    ///
+    /// - Parameters:
+    ///   - name: The name to resolve.
+    ///
+    /// - Returns: ``ARecord``s for the given name.
     func queryA(name: String) async throws -> [ARecord]
 
     /// Lookup AAAA records associated with `name`.
+    ///
+    /// - Parameters:
+    ///   - name: The name to resolve.
+    ///
+    /// - Returns: ``AAAARecord``s for the given name.
     func queryAAAA(name: String) async throws -> [AAAARecord]
 
-    /// Lookup NS records associated with `name`.
+    /// Lookup NS record associated with `name`.
+    ///
+    /// - Parameters:
+    ///   - name: The name to resolve.
+    ///
+    /// - Returns: ``NSRecord`` for the given name.
     func queryNS(name: String) async throws -> NSRecord
 
     /// Lookup CNAME record associated with `name`.
+    ///
+    /// - Parameters:
+    ///   - name: The name to resolve.
+    ///
+    /// - Returns: CNAME for the given name.
     func queryCNAME(name: String) async throws -> String
 
     /// Lookup SOA record associated with `name`.
+    ///
+    /// - Parameters:
+    ///   - name: The name to resolve.
+    ///
+    /// - Returns: ``SOARecord`` for the given name.
     func querySOA(name: String) async throws -> SOARecord
 
     /// Lookup PTR record associated with `name`.
+    ///
+    /// - Parameters:
+    ///   - name: The name to resolve.
+    ///
+    /// - Returns: ``PTRRecord`` for the given name.
     func queryPTR(name: String) async throws -> PTRRecord
 
     /// Lookup MX records associated with `name`.
+    ///
+    /// - Parameters:
+    ///   - name: The name to resolve.
+    ///
+    /// - Returns: ``MXRecord``s for the given name.
     func queryMX(name: String) async throws -> [MXRecord]
 
     /// Lookup TXT records associated with `name`.
+    ///
+    /// - Parameters:
+    ///   - name: The name to resolve.
+    ///
+    /// - Returns: ``TXTRecord``s for the given name.
     func queryTXT(name: String) async throws -> [TXTRecord]
 
     /// Lookup SRV records associated with `name`.
+    ///
+    /// - Parameters:
+    ///   - name: The name to resolve.
+    ///
+    /// - Returns: ``SRVRecord``s for the given name.
     func querySRV(name: String) async throws -> [SRVRecord]
 }
 
