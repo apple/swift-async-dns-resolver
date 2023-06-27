@@ -26,6 +26,15 @@ components that this product depends on.
 
 -------------------------------------------------------------------------------
 
+This product uses and is influenced by c-ares.
+
+  * LICENSE (MIT License):
+    * https://github.com/c-ares/c-ares/blob/main/LICENSE.md
+  * HOMEPAGE:
+    * https://c-ares.org
+    
+---
+
 This product contains derivations of various scripts and templates from SwiftNIO.
 
   * LICENSE (Apache License 2.0):
