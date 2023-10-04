@@ -13,22 +13,22 @@
 //===----------------------------------------------------------------------===//
 
 import CAsyncDNSResolver
+import Foundation
 
 // MARK: - ares_channel
 
-actor AresChannel {
+class AresChannel {
     let pointer: UnsafeMutablePointer<ares_channel?>
+    let lock = NSLock()
 
     private var underlying: ares_channel? {
         self.pointer.pointee
     }
 
     deinit {
-        Task { [pointer] in
-            ares_destroy(pointer.pointee)
-            pointer.deallocate()
-            ares_library_cleanup()
-        }
+        ares_destroy(pointer.pointee)
+        pointer.deallocate()
+        ares_library_cleanup()
     }
 
     init(options: AresOptions) throws {
@@ -52,6 +52,9 @@ actor AresChannel {
     }
 
     func withChannel(_ body: (ares_channel) -> Void) {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+
         guard let underlying = self.underlying else {
             fatalError("ares_channel not initialized")
         }

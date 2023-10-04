@@ -162,10 +162,8 @@ class Ares {
                 handler.handle(status: status, buffer: buf, length: len)
             }
 
-            Task {
-                await self.channel.withChannel { channel in
-                    ares_query(channel, name, DNSClass.IN.rawValue, type.intValue, queryCallback, handlerPointer)
-                }
+            self.channel.withChannel { channel in
+                ares_query(channel, name, DNSClass.IN.rawValue, type.intValue, queryCallback, handlerPointer)
             }
         }
     }
@@ -199,7 +197,7 @@ extension Ares {
         func poll() async {
             var socks = [ares_socket_t](repeating: ares_socket_t(), count: Int(ARES_GETSOCK_MAXNUM))
 
-            await self.channel.withChannel { channel in
+            self.channel.withChannel { channel in
                 // Indicates what actions (i.e., read/write) to wait for on the different sockets
                 let bitmask = UInt32(ares_getsock(channel, &socks, ARES_GETSOCK_MAXNUM))
 
