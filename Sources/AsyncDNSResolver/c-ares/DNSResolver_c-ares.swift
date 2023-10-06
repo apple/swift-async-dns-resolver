@@ -141,33 +141,40 @@ class Ares {
         name: String,
         replyParser: ReplyParser
     ) async throws -> ReplyParser.Reply {
-        try await withCheckedThrowingContinuation { continuation in
-            let handler = QueryReplyHandler(parser: replyParser, continuation)
+        try await withTaskCancellationHandler(
+            operation: {
+                try await withCheckedThrowingContinuation { continuation in
+                    let handler = QueryReplyHandler(parser: replyParser, continuation)
 
-            // Wrap `handler` into a pointer so we can pass it to callback. The pointer will be deallocated in there later.
-            let handlerPointer = UnsafeMutableRawPointer.allocate(
-                byteCount: MemoryLayout<QueryReplyHandler>.stride,
-                alignment: MemoryLayout<QueryReplyHandler>.alignment
-            )
-            handlerPointer.initializeMemory(as: QueryReplyHandler.self, repeating: handler, count: 1)
+                    // Wrap `handler` into a pointer so we can pass it to callback. The pointer will be deallocated in there later.
+                    let handlerPointer = UnsafeMutableRawPointer.allocate(
+                        byteCount: MemoryLayout<QueryReplyHandler>.stride,
+                        alignment: MemoryLayout<QueryReplyHandler>.alignment
+                    )
+                    handlerPointer.initializeMemory(as: QueryReplyHandler.self, repeating: handler, count: 1)
 
-            let queryCallback: QueryCallback = { arg, status, _, buf, len in
-                guard let handlerPointer = arg else {
-                    preconditionFailure("'arg' is nil. This is a bug.")
+                    let queryCallback: QueryCallback = { arg, status, _, buf, len in
+                        guard let handlerPointer = arg else {
+                            preconditionFailure("'arg' is nil. This is a bug.")
+                        }
+
+                        let handler = QueryReplyHandler(pointer: handlerPointer)
+                        defer { handlerPointer.deallocate() }
+
+                        handler.handle(status: status, buffer: buf, length: len)
+                    }
+
+                    self.channel.withChannel { channel in
+                        ares_query(channel, name, DNSClass.IN.rawValue, type.intValue, queryCallback, handlerPointer)
+                    }
                 }
-
-                let handler = QueryReplyHandler(pointer: handlerPointer)
-                defer { handlerPointer.deallocate() }
-
-                handler.handle(status: status, buffer: buf, length: len)
-            }
-
-            Task {
-                await self.channel.withChannel { channel in
-                    ares_query(channel, name, DNSClass.IN.rawValue, type.intValue, queryCallback, handlerPointer)
+            },
+            onCancel: {
+                self.channel.withChannel { channel in
+                    ares_cancel(channel)
                 }
             }
-        }
+        )
     }
 
     /// See `arpa/nameser.h`.
@@ -199,7 +206,7 @@ extension Ares {
         func poll() async {
             var socks = [ares_socket_t](repeating: ares_socket_t(), count: Int(ARES_GETSOCK_MAXNUM))
 
-            await self.channel.withChannel { channel in
+            self.channel.withChannel { channel in
                 // Indicates what actions (i.e., read/write) to wait for on the different sockets
                 let bitmask = UInt32(ares_getsock(channel, &socks, ARES_GETSOCK_MAXNUM))
 
