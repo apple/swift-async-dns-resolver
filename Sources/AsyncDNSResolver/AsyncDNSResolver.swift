@@ -183,7 +183,7 @@ enum QueryType {
 
 // MARK: - Query reply types
 
-public enum IPAddress: Sendable, CustomStringConvertible {
+public enum IPAddress: Sendable, Equatable, CustomStringConvertible {
     case IPv4(String)
     case IPv6(String)
 
@@ -197,7 +197,7 @@ public enum IPAddress: Sendable, CustomStringConvertible {
     }
 }
 
-public struct ARecord: Sendable, CustomStringConvertible {
+public struct ARecord: Sendable, Equatable, CustomStringConvertible {
     public let address: IPAddress
     public let ttl: Int32?
 
@@ -206,7 +206,7 @@ public struct ARecord: Sendable, CustomStringConvertible {
     }
 }
 
-public struct AAAARecord: Sendable, CustomStringConvertible {
+public struct AAAARecord: Sendable, Equatable, CustomStringConvertible {
     public let address: IPAddress
     public let ttl: Int32?
 
@@ -215,7 +215,7 @@ public struct AAAARecord: Sendable, CustomStringConvertible {
     }
 }
 
-public struct NSRecord: Sendable, CustomStringConvertible {
+public struct NSRecord: Sendable, Equatable, CustomStringConvertible {
     public let nameservers: [String]
 
     public var description: String {
@@ -223,7 +223,7 @@ public struct NSRecord: Sendable, CustomStringConvertible {
     }
 }
 
-public struct SOARecord: Sendable, CustomStringConvertible {
+public struct SOARecord: Sendable, Equatable, CustomStringConvertible {
     public let mname: String?
     public let rname: String?
     public let serial: UInt32
@@ -237,7 +237,7 @@ public struct SOARecord: Sendable, CustomStringConvertible {
     }
 }
 
-public struct PTRRecord: Sendable, CustomStringConvertible {
+public struct PTRRecord: Sendable, Equatable, CustomStringConvertible {
     public let names: [String]
 
     public var description: String {
@@ -245,7 +245,7 @@ public struct PTRRecord: Sendable, CustomStringConvertible {
     }
 }
 
-public struct MXRecord: Sendable, CustomStringConvertible {
+public struct MXRecord: Sendable, Equatable, CustomStringConvertible {
     public let host: String
     public let priority: UInt16
 
@@ -254,7 +254,7 @@ public struct MXRecord: Sendable, CustomStringConvertible {
     }
 }
 
-public struct TXTRecord: Sendable {
+public struct TXTRecord: Sendable, Equatable {
     public let txt: String
 
     public var description: String {
@@ -262,7 +262,7 @@ public struct TXTRecord: Sendable {
     }
 }
 
-public struct SRVRecord: Sendable, CustomStringConvertible {
+public struct SRVRecord: Sendable, Equatable, CustomStringConvertible {
     public let host: String
     public let port: UInt16
     public let weight: UInt16
@@ -273,7 +273,7 @@ public struct SRVRecord: Sendable, CustomStringConvertible {
     }
 }
 
-public struct NAPTRRecord: Sendable, CustomStringConvertible {
+public struct NAPTRRecord: Sendable, Equatable, CustomStringConvertible {
     public let flags: String?
     public let service: String?
     public let regExp: String?
