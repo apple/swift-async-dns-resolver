@@ -220,19 +220,10 @@ extension DNSSD {
                 throw AsyncDNSResolver.Error.noData()
             }
 
-            let bufferPtr = UnsafeBufferPointer(start: ptr, count: Int(length))
-            var buffer = ByteBuffer(bytes: bufferPtr)
-
-            guard let addressBytes = buffer.readInteger(as: UInt32.self) else {
-                throw AsyncDNSResolver.Error.badResponse("failed to read address")
-            }
-
-            let address = withUnsafeBytes(of: addressBytes) { buffer in
-                let buffer = buffer.bindMemory(to: UInt8.self)
-                return "\(buffer[3]).\(buffer[2]).\(buffer[1]).\(buffer[0])"
-            }
-
-            return ARecord(address: .IPv4(address), ttl: nil)
+            var parsedAddressBytes = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
+            inet_ntop(AF_INET, ptr, &parsedAddressBytes, socklen_t(INET_ADDRSTRLEN))
+            let parsedAddress = String(cString: parsedAddressBytes)
+            return ARecord(address: .IPv4(parsedAddress), ttl: nil)
         }
 
         func generateReply(records: [ARecord]) throws -> [ARecord] {
@@ -248,18 +239,10 @@ extension DNSSD {
                 throw AsyncDNSResolver.Error.noData()
             }
 
-            let bufferPtr = UnsafeBufferPointer(start: ptr, count: Int(length))
-            var buffer = ByteBuffer(bytes: bufferPtr)
-
-            guard let addressBytes = buffer.readBytes(length: 16) else {
-                throw AsyncDNSResolver.Error.badResponse("failed to read address")
-            }
-
-            let address = stride(from: 0, to: addressBytes.endIndex, by: 2).map {
-                "\(String(addressBytes[$0], radix: 16))\(String(addressBytes[$0.advanced(by: 1)], radix: 16))"
-            }.joined(separator: ":")
-
-            return AAAARecord(address: .IPv6(address), ttl: nil)
+            var parsedAddressBytes = [CChar](repeating: 0, count: Int(INET6_ADDRSTRLEN))
+            inet_ntop(AF_INET6, ptr, &parsedAddressBytes, socklen_t(INET6_ADDRSTRLEN))
+            let parsedAddress = String(cString: parsedAddressBytes)
+            return AAAARecord(address: .IPv6(parsedAddress), ttl: nil)
         }
 
         func generateReply(records: [AAAARecord]) throws -> [AAAARecord] {
