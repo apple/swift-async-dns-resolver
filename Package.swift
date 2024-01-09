@@ -12,7 +12,7 @@ var caresExclude = [
 ]
 
 do {
-    if !(try FileManager.default.contentsOfDirectory(atPath: "./Sources/CAsyncDNSResolver/c-ares/CMakeFiles").isEmpty) {
+    if try !(FileManager.default.contentsOfDirectory(atPath: "./Sources/CAsyncDNSResolver/c-ares/CMakeFiles").isEmpty) {
         caresExclude.append("./c-ares/CMakeFiles/")
     }
 } catch {

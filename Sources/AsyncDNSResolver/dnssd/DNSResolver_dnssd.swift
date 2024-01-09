@@ -221,7 +221,7 @@ extension DNSSD {
             }
 
             guard length >= MemoryLayout<in_addr>.size else {
-               throw AsyncDNSResolver.Error.badResponse()
+                throw AsyncDNSResolver.Error.badResponse()
             }
 
             var parsedAddressBytes = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
@@ -244,7 +244,7 @@ extension DNSSD {
             }
 
             guard length >= MemoryLayout<in6_addr>.size else {
-               throw AsyncDNSResolver.Error.badResponse()
+                throw AsyncDNSResolver.Error.badResponse()
             }
 
             var parsedAddressBytes = [CChar](repeating: 0, count: Int(INET6_ADDRSTRLEN))
