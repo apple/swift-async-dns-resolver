@@ -21,6 +21,12 @@ function replace_acceptable_years() {
     sed -e 's/202[012]-202[123]/YEARS/' -e 's/202[0123]/YEARS/'
 }
 
+if ! hash swiftformat &> /dev/null
+then
+  printf "\033[0;31mPlease install swiftformat (https://github.com/nicklockwood/SwiftFormat) and run again.\033[0m\n"
+  exit 1
+fi
+
 printf "=> Checking format... "
 FIRST_OUT="$(git status --porcelain)"
 swiftformat . > /dev/null 2>&1

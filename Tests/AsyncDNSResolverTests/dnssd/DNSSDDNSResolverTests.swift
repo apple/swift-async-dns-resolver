@@ -104,6 +104,36 @@ final class DNSSDDNSResolverTests: XCTestCase {
         XCTAssertFalse(reply.isEmpty, "should have SRV record(s)")
     }
 
+    func test_parseA() throws {
+        let addrBytes: [UInt8] = [38, 32, 1, 73]
+        try addrBytes.withUnsafeBufferPointer {
+            let record = try DNSSD.AQueryReplyHandler.instance.parseRecord(data: $0.baseAddress, length: UInt16($0.count))
+            XCTAssertEqual(record, ARecord(address: .IPv4("38.32.1.73"), ttl: nil))
+        }
+    }
+
+    func test_parseATooShort() throws {
+        let addrBytes: [UInt8] = [38, 32, 1]
+        try addrBytes.withUnsafeBufferPointer {
+            XCTAssertThrowsError(
+                try DNSSD.AQueryReplyHandler.instance.parseRecord(
+                    data: $0.baseAddress, length: UInt16($0.count)
+                )
+            )
+        }
+    }
+
+    func test_parseAAAATooShort() throws {
+        let addrBytes: [UInt8] = [38, 32, 1, 73, 17, 11, 71, 14, 0, 0, 0, 0, 0, 0, 14]
+        try addrBytes.withUnsafeBufferPointer {
+            XCTAssertThrowsError(
+                try DNSSD.AAAAQueryReplyHandler.instance.parseRecord(
+                    data: $0.baseAddress, length: UInt16($0.count)
+                )
+            )
+        }
+    }
+
     func test_concurrency() async throws {
         func run(
             times: Int = 100,

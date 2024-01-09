@@ -26,7 +26,7 @@ public struct AsyncDNSResolver {
         #if canImport(Darwin)
         self.init(DNSSDDNSResolver())
         #else
-        self.init(try CAresDNSResolver())
+        try self.init(CAresDNSResolver())
         #endif
     }
 
@@ -44,7 +44,7 @@ public struct AsyncDNSResolver {
     /// - Parameters:
     ///   - options: Options to create ``CAresDNSResolver`` with.
     public init(options: CAresDNSResolver.Options) throws {
-        self.init(try CAresDNSResolver(options: options))
+        try self.init(CAresDNSResolver(options: options))
     }
 
     /// See ``DNSResolver/queryA(name:)``.
