@@ -112,11 +112,25 @@ final class DNSSDDNSResolverTests: XCTestCase {
         }
     }
 
-    func test_parseAAAA() throws {
-        let addrBytes: [UInt8] = [38, 32, 1, 73, 17, 11, 71, 14, 0, 0, 0, 0, 0, 0, 14, 26]
+    func test_parseATooShort() throws {
+        let addrBytes: [UInt8] = [38, 32, 1]
         try addrBytes.withUnsafeBufferPointer {
-            let record = try DNSSD.AAAAQueryReplyHandler.instance.parseRecord(data: $0.baseAddress, length: UInt16($0.count))
-            XCTAssertEqual(record, AAAARecord(address: .IPv6("2620:149:110b:470e::e1a"), ttl: nil))
+            XCTAssertThrowsError(
+                try DNSSD.AQueryReplyHandler.instance.parseRecord(
+                    data: $0.baseAddress, length: UInt16($0.count)
+                )
+            )
+        }
+    }
+
+    func test_parseAAAATooShort() throws {
+        let addrBytes: [UInt8] = [38, 32, 1, 73, 17, 11, 71, 14, 0, 0, 0, 0, 0, 0, 14]
+        try addrBytes.withUnsafeBufferPointer {
+            XCTAssertThrowsError(
+                try DNSSD.AAAAQueryReplyHandler.instance.parseRecord(
+                    data: $0.baseAddress, length: UInt16($0.count)
+                )
+            )
         }
     }
 

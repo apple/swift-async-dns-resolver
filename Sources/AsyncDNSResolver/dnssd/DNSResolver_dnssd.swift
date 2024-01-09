@@ -220,6 +220,10 @@ extension DNSSD {
                 throw AsyncDNSResolver.Error.noData()
             }
 
+            guard length >= MemoryLayout<in_addr>.size else {
+               throw AsyncDNSResolver.Error.badResponse()
+            }
+
             var parsedAddressBytes = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
             inet_ntop(AF_INET, ptr, &parsedAddressBytes, socklen_t(INET_ADDRSTRLEN))
             let parsedAddress = String(cString: parsedAddressBytes)
@@ -237,6 +241,10 @@ extension DNSSD {
         func parseRecord(data: UnsafeRawPointer?, length: UInt16) throws -> AAAARecord {
             guard let ptr = data?.assumingMemoryBound(to: UInt8.self) else {
                 throw AsyncDNSResolver.Error.noData()
+            }
+
+            guard length >= MemoryLayout<in6_addr>.size else {
+               throw AsyncDNSResolver.Error.badResponse()
             }
 
             var parsedAddressBytes = [CChar](repeating: 0, count: Int(INET6_ADDRSTRLEN))
