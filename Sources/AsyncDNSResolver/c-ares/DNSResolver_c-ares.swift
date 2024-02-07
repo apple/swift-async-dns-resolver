@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2020-2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2020-2024 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -195,6 +195,12 @@ extension Ares {
         private let channel: AresChannel
         private let pollIntervalNanos: UInt64
 
+        private var pollingTask: Task<Void, Error>?
+
+        deinit {
+            self.pollingTask?.cancel()
+        }
+
         init(channel: AresChannel, pollIntervalNanos: UInt64 = QueryProcessor.defaultPollInterval) {
             self.channel = channel
             self.pollIntervalNanos = pollIntervalNanos
@@ -234,9 +240,12 @@ extension Ares {
         }
 
         private func schedule() {
-            Task {
-                try await Task.sleep(nanoseconds: self.pollIntervalNanos)
-                await self.poll()
+            self.pollingTask = Task { [weak self] in
+                guard let s = self else {
+                    return
+                }
+                try await Task.sleep(nanoseconds: s.pollIntervalNanos)
+                await s.poll()
             }
         }
     }
