@@ -240,9 +240,12 @@ extension Ares {
         }
 
         private func schedule() {
-            self.pollingTask = Task {
-                try await Task.sleep(nanoseconds: self.pollIntervalNanos)
-                await self.poll()
+            self.pollingTask = Task { [weak self] in
+                guard let s = self else {
+                    return
+                }
+                try await Task.sleep(nanoseconds: s.pollIntervalNanos)
+                await s.poll()
             }
         }
     }
