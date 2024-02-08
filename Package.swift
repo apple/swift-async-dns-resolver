@@ -23,6 +23,7 @@ let package = Package(
     name: "swift-async-dns-resolver",
     platforms: [
         .macOS("13.0"),
+        .iOS(.v13),
     ],
     products: [
         .library(name: "AsyncDNSResolver", targets: ["AsyncDNSResolver"]),
