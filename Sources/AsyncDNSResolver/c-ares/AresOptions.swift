@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2020-2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2020-2024 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -16,6 +16,7 @@ import CAsyncDNSResolver
 
 // MARK: - Options for `CAresDNSResolver`
 
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension CAresDNSResolver {
     /// Options for ``CAresDNSResolver``.
     public struct Options {
@@ -88,6 +89,7 @@ extension CAresDNSResolver {
     }
 }
 
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension CAresDNSResolver.Options {
     public struct Flags: OptionSet {
         public let rawValue: Int32
@@ -120,6 +122,7 @@ extension CAresDNSResolver.Options {
     }
 }
 
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension CAresDNSResolver.Options {
     var aresOptions: AresOptions {
         let aresOptions = AresOptions()

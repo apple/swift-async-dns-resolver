@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2020-2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2020-2024 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -17,6 +17,7 @@ import Foundation
 
 // MARK: - ares_channel
 
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 class AresChannel {
     let pointer: UnsafeMutablePointer<ares_channel?>
     let lock = NSLock()
@@ -62,6 +63,7 @@ class AresChannel {
     }
 }
 
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 private func checkAresResult(body: () -> Int32) throws {
     let result = body()
     guard result == ARES_SUCCESS else {
