@@ -14,7 +14,6 @@
 
 #if canImport(Darwin)
 import dnssd
-import NIOCore
 
 /// ``DNSResolver`` implementation backed by dnssd framework.
 public struct DNSSDDNSResolver: DNSResolver {
@@ -267,7 +266,7 @@ extension DNSSD {
             }
 
             let bufferPtr = UnsafeBufferPointer(start: ptr, count: Int(length))
-            var buffer = ByteBuffer(bytes: bufferPtr)
+            var buffer = Array(bufferPtr)[...]
 
             guard let nameserver = self.readName(&buffer) else {
                 throw AsyncDNSResolver.Error.badResponse("failed to read name")
@@ -290,7 +289,7 @@ extension DNSSD {
             }
 
             let bufferPtr = UnsafeBufferPointer(start: ptr, count: Int(length))
-            var buffer = ByteBuffer(bytes: bufferPtr)
+            var buffer = Array(bufferPtr)[...]
 
             guard let cname = self.readName(&buffer) else {
                 throw AsyncDNSResolver.Error.badResponse("failed to read name")
@@ -313,7 +312,7 @@ extension DNSSD {
             }
 
             let bufferPtr = UnsafeBufferPointer(start: ptr, count: Int(length))
-            var buffer = ByteBuffer(bytes: bufferPtr)
+            var buffer = Array(bufferPtr)[...]
 
             guard let mname = self.readName(&buffer),
                   let rname = self.readName(&buffer),
@@ -350,7 +349,7 @@ extension DNSSD {
             }
 
             let bufferPtr = UnsafeBufferPointer(start: ptr, count: Int(length))
-            var buffer = ByteBuffer(bytes: bufferPtr)
+            var buffer = Array(bufferPtr)[...]
 
             guard let name = self.readName(&buffer) else {
                 throw AsyncDNSResolver.Error.badResponse("failed to read name")
@@ -373,7 +372,7 @@ extension DNSSD {
             }
 
             let bufferPtr = UnsafeBufferPointer(start: ptr, count: Int(length))
-            var buffer = ByteBuffer(bytes: bufferPtr)
+            var buffer = Array(bufferPtr)[...]
 
             guard let priority = buffer.readInteger(as: UInt16.self),
                   let host = self.readName(&buffer) else {
@@ -416,7 +415,7 @@ extension DNSSD {
             }
 
             let bufferPtr = UnsafeBufferPointer(start: ptr, count: Int(length))
-            var buffer = ByteBuffer(bytes: bufferPtr)
+            var buffer = Array(bufferPtr)[...]
 
             guard let priority = buffer.readInteger(as: UInt16.self),
                   let weight = buffer.readInteger(as: UInt16.self),
@@ -440,13 +439,14 @@ extension DNSSD {
 }
 
 extension DNSSDQueryReplyHandler {
-    func readName(_ buffer: inout ByteBuffer) -> String? {
+    func readName(_ buffer: inout ArraySlice<UInt8>) -> String? {
         var parts: [String] = []
         while let length = buffer.readInteger(as: UInt8.self),
               length > 0,
               let part = buffer.readString(length: Int(length)) {
             parts.append(part)
         }
+
         return parts.isEmpty ? nil : parts.joined(separator: ".")
     }
 
@@ -458,6 +458,32 @@ extension DNSSDQueryReplyHandler {
             throw AsyncDNSResolver.Error.noData()
         }
         return record
+    }
+}
+
+extension ArraySlice<UInt8> {
+    mutating func readInteger<T: FixedWidthInteger>(as: T.Type = T.self) -> T? {
+        let size = MemoryLayout<T>.size
+        guard self.count >= size else { return nil }
+
+        let value = self.withUnsafeBytes { pointer in
+            var value = T.zero
+            Swift.withUnsafeMutableBytes(of: &value) { valuePointer in
+                valuePointer.copyMemory(from: UnsafeRawBufferPointer(rebasing: pointer[..<size]))
+            }
+            return value.bigEndian
+        }
+
+        self = self.dropFirst(size)
+        return value
+    }
+
+    mutating func readString(length: Int) -> String? {
+        guard self.count >= length else { return nil }
+
+        let prefix = self.prefix(length)
+        self = self.dropFirst(length)
+        return String(decoding: prefix, as: UTF8.self)
     }
 }
 #endif
