@@ -29,7 +29,6 @@ let package = Package(
         .library(name: "AsyncDNSResolver", targets: ["AsyncDNSResolver"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-nio", .upToNextMajor(from: "2.53.0")),
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0"),
     ],
     targets: [
@@ -49,7 +48,6 @@ let package = Package(
             name: "AsyncDNSResolver",
             dependencies: [
                 "CAsyncDNSResolver",
-                .product(name: "NIOCore", package: "swift-nio"),
             ]
         ),
 
