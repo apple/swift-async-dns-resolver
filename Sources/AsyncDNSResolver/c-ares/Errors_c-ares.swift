@@ -17,58 +17,58 @@ import CAsyncDNSResolver
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension AsyncDNSResolver.Error {
     /// Create an ``AsyncDNSResolver/AsyncDNSResolver/Error`` from c-ares error code.
-    init(code: Int32, _ description: String? = nil) {
+    init(code: Int32, _ description: String = "") {
         switch code {
         case ARES_ENODATA:
-            self = .noData(description)
+            self = .init(code: .noData, message: description)
         case ARES_EFORMERR:
-            self = .invalidQuery(description)
+            self = .init(code: .invalidQuery, message: description)
         case ARES_ESERVFAIL:
-            self = .serverFailure(description)
+            self = .init(code: .serverFailure, message: description)
         case ARES_ENOTFOUND:
-            self = .notFound(description)
+            self = .init(code: .notFound, message: description)
         case ARES_ENOTIMP:
-            self = .notImplemented(description)
+            self = .init(code: .notImplemented, message: description)
         case ARES_EREFUSED:
-            self = .serverRefused(description)
+            self = .init(code: .serverRefused, message: description)
         case ARES_EBADQUERY:
-            self = .badQuery(description)
+            self = .init(code: .badQuery, message: description)
         case ARES_EBADNAME:
-            self = .badName(description)
+            self = .init(code: .badName, message: description)
         case ARES_EBADFAMILY:
-            self = .badFamily(description)
+            self = .init(code: .badFamily, message: description)
         case ARES_EBADRESP:
-            self = .badResponse(description)
+            self = .init(code: .badResponse, message: description)
         case ARES_ECONNREFUSED:
-            self = .connectionRefused(description)
+            self = .init(code: .connectionRefused, message: description)
         case ARES_ETIMEOUT:
-            self = .timeout(description)
+            self = .init(code: .timeout, message: description)
         case ARES_EOF:
-            self = .eof(description)
+            self = .init(code: .eof, message: description)
         case ARES_EFILE:
-            self = .fileIO(description)
+            self = .init(code: .fileIO, message: description)
         case ARES_ENOMEM:
-            self = .noMemory(description)
+            self = .init(code: .noMemory, message: description)
         case ARES_EDESTRUCTION:
-            self = .destruction(description)
+            self = .init(code: .destruction, message: description)
         case ARES_EBADSTR:
-            self = .badString(description)
+            self = .init(code: .badString, message: description)
         case ARES_EBADFLAGS:
-            self = .badFlags(description)
+            self = .init(code: .badFlags, message: description)
         case ARES_ENONAME:
-            self = .noName(description)
+            self = .init(code: .noName, message: description)
         case ARES_EBADHINTS:
-            self = .badHints(description)
+            self = .init(code: .badHints, message: description)
         case ARES_ENOTINITIALIZED:
-            self = .notInitialized(description)
+            self = .init(code: .notInitialized, message: description)
         case ARES_ELOADIPHLPAPI, ARES_EADDRGETNETWORKPARAMS:
-            self = .initError(description)
+            self = .init(code: .initError, message: description)
         case ARES_ECANCELLED:
-            self = .cancelled(description)
+            self = .init(code: .cancelled, message: description)
         case ARES_ESERVICE:
-            self = .service(description)
+            self = .init(code: .service, message: description)
         default:
-            self = .other(code: Int(code), description)
+            self = .init(code: .other(Int(code)), message: description)
         }
     }
 }

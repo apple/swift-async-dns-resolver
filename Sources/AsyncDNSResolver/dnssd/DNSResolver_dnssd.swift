@@ -135,7 +135,7 @@ struct DNSSD {
             defer { serviceRefPtr.deallocate() }
 
             // Run the query
-            let code = DNSServiceQueryRecord(
+            let _code = DNSServiceQueryRecord(
                 serviceRefPtr,
                 kDNSServiceFlagsTimeout,
                 0,
@@ -147,8 +147,8 @@ struct DNSSD {
             )
 
             // Check if query completed successfully
-            guard code == kDNSServiceErr_NoError else {
-                return continuation.finish(throwing: AsyncDNSResolver.Error.other(code: Int(code)))
+            guard _code == kDNSServiceErr_NoError else {
+                return continuation.finish(throwing: AsyncDNSResolver.Error(code: .other(Int(_code))))
             }
 
             // Read reply from the socket (blocking) then call reply handler
@@ -177,7 +177,7 @@ extension DNSSD {
         init<Handler: DNSSDQueryReplyHandler>(handler: Handler, _ continuation: AsyncThrowingStream<Handler.Record, Error>.Continuation) {
             self._handleRecord = { errorCode, data, length in
                 guard errorCode == kDNSServiceErr_NoError else {
-                    return continuation.finish(throwing: AsyncDNSResolver.Error.other(code: Int(errorCode)))
+                    return continuation.finish(throwing: AsyncDNSResolver.Error(code: .other(Int(errorCode))))
                 }
 
                 do {
@@ -220,11 +220,11 @@ extension DNSSD {
 
         func parseRecord(data: UnsafeRawPointer?, length: UInt16) throws -> ARecord {
             guard let ptr = data?.assumingMemoryBound(to: UInt8.self) else {
-                throw AsyncDNSResolver.Error.noData()
+                throw AsyncDNSResolver.Error(code: .noData)
             }
 
             guard length >= MemoryLayout<in_addr>.size else {
-                throw AsyncDNSResolver.Error.badResponse()
+                throw AsyncDNSResolver.Error(code: .badResponse)
             }
 
             var parsedAddressBytes = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
@@ -243,11 +243,11 @@ extension DNSSD {
 
         func parseRecord(data: UnsafeRawPointer?, length: UInt16) throws -> AAAARecord {
             guard let ptr = data?.assumingMemoryBound(to: UInt8.self) else {
-                throw AsyncDNSResolver.Error.noData()
+                throw AsyncDNSResolver.Error(code: .noData)
             }
 
             guard length >= MemoryLayout<in6_addr>.size else {
-                throw AsyncDNSResolver.Error.badResponse()
+                throw AsyncDNSResolver.Error(code: .badResponse)
             }
 
             var parsedAddressBytes = [CChar](repeating: 0, count: Int(INET6_ADDRSTRLEN))
@@ -266,14 +266,14 @@ extension DNSSD {
 
         func parseRecord(data: UnsafeRawPointer?, length: UInt16) throws -> String {
             guard let ptr = data?.assumingMemoryBound(to: UInt8.self) else {
-                throw AsyncDNSResolver.Error.noData()
+                throw AsyncDNSResolver.Error(code: .noData)
             }
 
             let bufferPtr = UnsafeBufferPointer(start: ptr, count: Int(length))
             var buffer = Array(bufferPtr)[...]
 
             guard let nameserver = self.readName(&buffer) else {
-                throw AsyncDNSResolver.Error.badResponse("failed to read name")
+                throw AsyncDNSResolver.Error(code: .badResponse, message: "failed to read name")
             }
 
             return nameserver
@@ -289,14 +289,14 @@ extension DNSSD {
 
         func parseRecord(data: UnsafeRawPointer?, length: UInt16) throws -> String {
             guard let ptr = data?.assumingMemoryBound(to: UInt8.self) else {
-                throw AsyncDNSResolver.Error.noData()
+                throw AsyncDNSResolver.Error(code: .noData)
             }
 
             let bufferPtr = UnsafeBufferPointer(start: ptr, count: Int(length))
             var buffer = Array(bufferPtr)[...]
 
             guard let cname = self.readName(&buffer) else {
-                throw AsyncDNSResolver.Error.badResponse("failed to read name")
+                throw AsyncDNSResolver.Error(code: .badResponse, message: "failed to read name")
             }
 
             return cname
@@ -312,7 +312,7 @@ extension DNSSD {
 
         func parseRecord(data: UnsafeRawPointer?, length: UInt16) throws -> SOARecord {
             guard let ptr = data?.assumingMemoryBound(to: UInt8.self) else {
-                throw AsyncDNSResolver.Error.noData()
+                throw AsyncDNSResolver.Error(code: .noData)
             }
 
             let bufferPtr = UnsafeBufferPointer(start: ptr, count: Int(length))
@@ -325,7 +325,7 @@ extension DNSSD {
                   let retry = buffer.readInteger(as: UInt32.self),
                   let expire = buffer.readInteger(as: UInt32.self),
                   let ttl = buffer.readInteger(as: UInt32.self) else {
-                throw AsyncDNSResolver.Error.badResponse()
+                throw AsyncDNSResolver.Error(code: .badResponse)
             }
 
             return SOARecord(
@@ -349,14 +349,14 @@ extension DNSSD {
 
         func parseRecord(data: UnsafeRawPointer?, length: UInt16) throws -> String {
             guard let ptr = data?.assumingMemoryBound(to: UInt8.self) else {
-                throw AsyncDNSResolver.Error.noData()
+                throw AsyncDNSResolver.Error(code: .noData)
             }
 
             let bufferPtr = UnsafeBufferPointer(start: ptr, count: Int(length))
             var buffer = Array(bufferPtr)[...]
 
             guard let name = self.readName(&buffer) else {
-                throw AsyncDNSResolver.Error.badResponse("failed to read name")
+                throw AsyncDNSResolver.Error(code: .badResponse, message: "failed to read name")
             }
 
             return name
@@ -372,7 +372,7 @@ extension DNSSD {
 
         func parseRecord(data: UnsafeRawPointer?, length: UInt16) throws -> MXRecord {
             guard let ptr = data?.assumingMemoryBound(to: UInt8.self) else {
-                throw AsyncDNSResolver.Error.noData()
+                throw AsyncDNSResolver.Error(code: .noData)
             }
 
             let bufferPtr = UnsafeBufferPointer(start: ptr, count: Int(length))
@@ -380,7 +380,7 @@ extension DNSSD {
 
             guard let priority = buffer.readInteger(as: UInt16.self),
                   let host = self.readName(&buffer) else {
-                throw AsyncDNSResolver.Error.badResponse()
+                throw AsyncDNSResolver.Error(code: .badResponse)
             }
 
             return MXRecord(
@@ -399,7 +399,7 @@ extension DNSSD {
 
         func parseRecord(data: UnsafeRawPointer?, length: UInt16) throws -> TXTRecord {
             guard let ptr = data?.assumingMemoryBound(to: UInt8.self) else {
-                throw AsyncDNSResolver.Error.noData()
+                throw AsyncDNSResolver.Error(code: .noData)
             }
             let txt = String(cString: ptr.advanced(by: 1))
             return TXTRecord(txt: txt)
@@ -415,7 +415,7 @@ extension DNSSD {
 
         func parseRecord(data: UnsafeRawPointer?, length: UInt16) throws -> SRVRecord {
             guard let ptr = data?.assumingMemoryBound(to: UInt8.self) else {
-                throw AsyncDNSResolver.Error.noData()
+                throw AsyncDNSResolver.Error(code: .noData)
             }
 
             let bufferPtr = UnsafeBufferPointer(start: ptr, count: Int(length))
@@ -425,7 +425,7 @@ extension DNSSD {
                   let weight = buffer.readInteger(as: UInt16.self),
                   let port = buffer.readInteger(as: UInt16.self),
                   let host = self.readName(&buffer) else {
-                throw AsyncDNSResolver.Error.badResponse()
+                throw AsyncDNSResolver.Error(code: .badResponse)
             }
 
             return SRVRecord(
@@ -457,10 +457,10 @@ extension DNSSDQueryReplyHandler {
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
     func ensureOne<R>(records: [R]) throws -> R {
         guard records.count <= 1 else {
-            throw AsyncDNSResolver.Error.badResponse("expected 1 record but got \(records.count)")
+            throw AsyncDNSResolver.Error(code: .badResponse, message: "expected 1 record but got \(records.count)")
         }
         guard let record = records.first else {
-            throw AsyncDNSResolver.Error.noData()
+            throw AsyncDNSResolver.Error(code: .noData)
         }
         return record
     }
