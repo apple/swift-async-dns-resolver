@@ -227,7 +227,7 @@ extension DNSSD {
             var parsedAddressBytes = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
             inet_ntop(AF_INET, ptr, &parsedAddressBytes, socklen_t(INET_ADDRSTRLEN))
             let parsedAddress = String(cString: parsedAddressBytes)
-            return ARecord(address: .IPv4(parsedAddress), ttl: nil)
+            return ARecord(address: .init(address: parsedAddress), ttl: nil)
         }
 
         func generateReply(records: [ARecord]) throws -> [ARecord] {
@@ -250,7 +250,7 @@ extension DNSSD {
             var parsedAddressBytes = [CChar](repeating: 0, count: Int(INET6_ADDRSTRLEN))
             inet_ntop(AF_INET6, ptr, &parsedAddressBytes, socklen_t(INET6_ADDRSTRLEN))
             let parsedAddress = String(cString: parsedAddressBytes)
-            return AAAARecord(address: .IPv6(parsedAddress), ttl: nil)
+            return AAAARecord(address: .init(address: parsedAddress), ttl: nil)
         }
 
         func generateReply(records: [AAAARecord]) throws -> [AAAARecord] {
