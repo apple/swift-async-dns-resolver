@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2020-2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2020-2024 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -15,6 +15,7 @@
 // MARK: - Async DNS resolver API
 
 /// `AsyncDNSResolver` provides API for running asynchronous DNS queries.
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 public struct AsyncDNSResolver {
     let underlying: DNSResolver
 

@@ -15,6 +15,7 @@
 import CAsyncDNSResolver
 
 /// ``DNSResolver`` implementation backed by c-ares C library.
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 public class CAresDNSResolver: DNSResolver {
     let options: Options
     let ares: Ares
@@ -119,6 +120,7 @@ extension QueryType {
 
 // MARK: - c-ares query wrapper
 
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 class Ares {
     typealias QueryCallback = @convention(c) (UnsafeMutableRawPointer?, CInt, CInt, UnsafeMutablePointer<CUnsignedChar>?, CInt) -> Void
 
@@ -183,6 +185,7 @@ class Ares {
     }
 }
 
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension Ares {
     // TODO: implement this more nicely using NIO EventLoop?
     // See:
@@ -253,6 +256,7 @@ extension Ares {
 
 // MARK: - c-ares query reply handler
 
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension Ares {
     struct QueryReplyHandler {
         private let _handler: (CInt, UnsafeMutablePointer<CUnsignedChar>?, CInt) -> Void
@@ -291,6 +295,7 @@ protocol AresQueryReplyParser {
     func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> Reply
 }
 
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension Ares {
     static let maxAddresses: Int = 32
 
