@@ -44,12 +44,13 @@ extension AsyncDNSResolver {
                 case service
                 case other(Int)
             }
+
             fileprivate var value: Value
             private init(_ value: Value) {
                 self.value = value
             }
 
-            public static var noData: Self { Self(.noData)}
+            public static var noData: Self { Self(.noData) }
 
             public static var invalidQuery: Self { Self(.invalidQuery) }
 
