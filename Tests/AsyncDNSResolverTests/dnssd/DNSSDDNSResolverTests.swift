@@ -108,7 +108,7 @@ final class DNSSDDNSResolverTests: XCTestCase {
         let addrBytes: [UInt8] = [38, 32, 1, 73]
         try addrBytes.withUnsafeBufferPointer {
             let record = try DNSSD.AQueryReplyHandler.instance.parseRecord(data: $0.baseAddress, length: UInt16($0.count))
-            XCTAssertEqual(record, ARecord(address: .IPv4("38.32.1.73"), ttl: nil))
+            XCTAssertEqual(record, ARecord(address: .init(address: "38.32.1.73"), ttl: nil))
         }
     }
 

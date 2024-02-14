@@ -579,32 +579,34 @@ private func toStringArray(_ arrayPointer: UnsafeMutablePointer<UnsafeMutablePoi
     return result
 }
 
-extension IPAddress {
+extension IPAddress.IPv4 {
     init(_ address: in_addr) {
         var address = address
         var addressBytes = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
         inet_ntop(AF_INET, &address, &addressBytes, socklen_t(INET_ADDRSTRLEN))
-        self = .IPv4(String(cString: addressBytes))
+        self = .init(address: String(cString: addressBytes))
     }
+}
 
+extension IPAddress.IPv6 {
     init(_ address: ares_in6_addr) {
         var address = address
         var addressBytes = [CChar](repeating: 0, count: Int(INET6_ADDRSTRLEN))
         inet_ntop(AF_INET6, &address, &addressBytes, socklen_t(INET6_ADDRSTRLEN))
-        self = .IPv6(String(cString: addressBytes))
+        self = .init(address: String(cString: addressBytes))
     }
 }
 
 extension ARecord {
     init(_ addrttl: ares_addrttl) {
-        self.address = IPAddress(addrttl.ipaddr)
+        self.address = IPAddress.IPv4(addrttl.ipaddr)
         self.ttl = addrttl.ttl
     }
 }
 
 extension AAAARecord {
     init(_ addrttl: ares_addr6ttl) {
-        self.address = IPAddress(addrttl.ip6addr)
+        self.address = IPAddress.IPv6(addrttl.ip6addr)
         self.ttl = addrttl.ttl
     }
 }

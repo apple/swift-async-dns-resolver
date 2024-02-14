@@ -185,21 +185,39 @@ enum QueryType {
 // MARK: - Query reply types
 
 public enum IPAddress: Sendable, Equatable, CustomStringConvertible {
-    case IPv4(String)
-    case IPv6(String)
+    case ipv4(IPv4)
+    case ipv6(IPv6)
 
     public var description: String {
         switch self {
-        case .IPv4(let address):
-            return address
-        case .IPv6(let address):
-            return address
+        case .ipv4(let address):
+            return String(describing: address)
+        case .ipv6(let address):
+            return String(describing: address)
+        }
+    }
+
+    public struct IPv4: Sendable, Hashable, CustomStringConvertible {
+        public var address: String
+        public var description: String { self.address }
+
+        public init(address: String) {
+            self.address = address
+        }
+    }
+
+    public struct IPv6: Sendable, Hashable, CustomStringConvertible {
+        public var address: String
+        public var description: String { self.address }
+
+        public init(address: String) {
+            self.address = address
         }
     }
 }
 
 public struct ARecord: Sendable, Equatable, CustomStringConvertible {
-    public let address: IPAddress
+    public let address: IPAddress.IPv4
     public let ttl: Int32?
 
     public var description: String {
@@ -208,7 +226,7 @@ public struct ARecord: Sendable, Equatable, CustomStringConvertible {
 }
 
 public struct AAAARecord: Sendable, Equatable, CustomStringConvertible {
-    public let address: IPAddress
+    public let address: IPAddress.IPv6
     public let ttl: Int32?
 
     public var description: String {
