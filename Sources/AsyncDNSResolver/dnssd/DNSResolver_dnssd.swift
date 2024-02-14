@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2023-2024 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -16,6 +16,7 @@
 import dnssd
 
 /// ``DNSResolver`` implementation backed by dnssd framework.
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 public struct DNSSDDNSResolver: DNSResolver {
     let dnssd: DNSSD
 
@@ -98,6 +99,7 @@ extension QueryType {
 
 // MARK: - dnssd query wrapper
 
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 struct DNSSD {
     // Reference: https://gist.github.com/fikeminkel/a9c4bc4d0348527e8df3690e242038d3
     func query<ReplyHandler: DNSSDQueryReplyHandler>(
@@ -167,6 +169,7 @@ struct DNSSD {
 
 // MARK: - dnssd query reply handler
 
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension DNSSD {
     struct QueryReplyHandler {
         private let _handleRecord: (DNSServiceErrorType, UnsafeRawPointer?, UInt16) -> Void
@@ -208,6 +211,7 @@ protocol DNSSDQueryReplyHandler {
     func generateReply(records: [Record]) throws -> Reply
 }
 
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension DNSSD {
     // Reference: https://github.com/orlandos-nl/DNSClient/blob/master/Sources/DNSClient/Messages/Message.swift
 
@@ -450,6 +454,7 @@ extension DNSSDQueryReplyHandler {
         return parts.isEmpty ? nil : parts.joined(separator: ".")
     }
 
+    @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
     func ensureOne<R>(records: [R]) throws -> R {
         guard records.count <= 1 else {
             throw AsyncDNSResolver.Error.badResponse("expected 1 record but got \(records.count)")
