@@ -67,6 +67,6 @@ class AresChannel {
 private func checkAresResult(body: () -> Int32) throws {
     let result = body()
     guard result == ARES_SUCCESS else {
-        throw AsyncDNSResolver.Error(code: result, "failed to initialize channel")
+        throw AsyncDNSResolver.Error(cAresCode: result, "failed to initialize channel")
     }
 }

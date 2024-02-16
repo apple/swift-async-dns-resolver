@@ -268,7 +268,7 @@ extension Ares {
         init<Parser: AresQueryReplyParser>(parser: Parser, _ continuation: CheckedContinuation<Parser.Reply, Error>) {
             self._handler = { status, buffer, length in
                 guard status == ARES_SUCCESS || status == ARES_ENODATA else {
-                    return continuation.resume(throwing: AsyncDNSResolver.Error(code: status))
+                    return continuation.resume(throwing: AsyncDNSResolver.Error(cAresCode: status))
                 }
 
                 do {
@@ -322,7 +322,7 @@ extension Ares {
                 return []
 
             default:
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse A query reply")
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse A query reply")
             }
         }
     }
@@ -351,7 +351,7 @@ extension Ares {
                 return []
 
             default:
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse AAAA query reply")
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse AAAA query reply")
             }
         }
     }
@@ -378,7 +378,7 @@ extension Ares {
                 return NSRecord(nameservers: [])
 
             default:
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse NS query reply")
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse NS query reply")
             }
         }
     }
@@ -402,7 +402,7 @@ extension Ares {
             case ARES_ENODATA:
                 return nil
             default:
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse CNAME query reply")
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse CNAME query reply")
             }
         }
     }
@@ -435,7 +435,7 @@ extension Ares {
                 return nil
 
             default:
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse SOA query reply")
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse SOA query reply")
             }
         }
     }
@@ -464,7 +464,7 @@ extension Ares {
                 return PTRRecord(names: [])
 
             default:
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse PTR query record")
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse PTR query record")
             }
         }
     }
@@ -496,7 +496,7 @@ extension Ares {
                 return []
 
             default:
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse MX query record")
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse MX query record")
             }
         }
     }
@@ -528,7 +528,7 @@ extension Ares {
                 return []
 
             default:
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse TXT query reply")
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse TXT query reply")
             }
         }
     }
@@ -563,7 +563,7 @@ extension Ares {
                 return []
 
             default:
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse SRV query reply")
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse SRV query reply")
             }
         }
     }
@@ -600,7 +600,7 @@ extension Ares {
                 return []
 
             default:
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse NAPTR query reply")
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse NAPTR query reply")
             }
         }
     }
