@@ -370,7 +370,7 @@ extension Ares {
             }
 
             guard let hostent = hostentPtrPtr.pointee?.pointee else {
-                throw AsyncDNSResolver.Error.noData("no NS records found")
+                throw AsyncDNSResolver.Error(code: .noData, message: "no NS records found")
             }
 
             let nameServers = toStringArray(hostent.h_aliases)
@@ -391,7 +391,7 @@ extension Ares {
             }
 
             guard let hostent = hostentPtrPtr.pointee?.pointee else {
-                throw AsyncDNSResolver.Error.noData("no CNAME record found")
+                throw AsyncDNSResolver.Error(code: .noData, message: "no CNAME record found")
             }
 
             return String(cString: hostent.h_name)
@@ -411,7 +411,7 @@ extension Ares {
             }
 
             guard let soaReply = soaReplyPtrPtr.pointee?.pointee else {
-                throw AsyncDNSResolver.Error.noData("no SOA record found")
+                throw AsyncDNSResolver.Error(code: .noData, message: "no SOA record found")
             }
 
             return SOARecord(
@@ -441,7 +441,7 @@ extension Ares {
             }
 
             guard let hostent = hostentPtrPtr.pointee?.pointee else {
-                throw AsyncDNSResolver.Error.noData("no PTR record found")
+                throw AsyncDNSResolver.Error(code: .noData, message: "no PTR record found")
             }
 
             let hostnames = toStringArray(hostent.h_aliases)

@@ -15,198 +15,155 @@
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension AsyncDNSResolver {
     /// Possible ``AsyncDNSResolver/AsyncDNSResolver`` errors.
-    public struct Error: Swift.Error, CustomStringConvertible {
-        enum Code: Equatable, CustomStringConvertible {
-            case noData(String?)
-            case invalidQuery(String?)
-            case serverFailure(String?)
-            case notFound(String?)
-            case notImplemented(String?)
-            case serverRefused(String?)
-            case badQuery(String?)
-            case badName(String?)
-            case badFamily(String?)
-            case badResponse(String?)
-            case connectionRefused(String?)
-            case timeout(String?)
-            case eof(String?)
-            case fileIO(String?)
-            case noMemory(String?)
-            case destruction(String?)
-            case badString(String?)
-            case badFlags(String?)
-            case noName(String?)
-            case badHints(String?)
-            case notInitialized(String?)
-            case initError(String?)
-            case cancelled(String?)
-            case service(String?)
-            case other(code: Int, String?)
+    public struct Error: Swift.Error, Hashable, CustomStringConvertible {
+        public struct Code: Hashable, Sendable {
+            fileprivate enum Value: Hashable, Sendable {
+                case noData
+                case invalidQuery
+                case serverFailure
+                case notFound
+                case notImplemented
+                case serverRefused
+                case badQuery
+                case badName
+                case badFamily
+                case badResponse
+                case connectionRefused
+                case timeout
+                case eof
+                case fileIO
+                case noMemory
+                case destruction
+                case badString
+                case badFlags
+                case noName
+                case badHints
+                case notInitialized
+                case initError
+                case cancelled
+                case service
+                case other(Int)
+            }
 
-            var description: String {
-                switch self {
-                case .noData(let description):
-                    return "no data: \(description ?? "")"
-                case .invalidQuery(let description):
-                    return "invalid query: \(description ?? "")"
-                case .serverFailure(let description):
-                    return "server failure: \(description ?? "")"
-                case .notFound(let description):
-                    return "not found: \(description ?? "")"
-                case .notImplemented(let description):
-                    return "not implemented: \(description ?? "")"
-                case .serverRefused(let description):
-                    return "server refused: \(description ?? "")"
-                case .badQuery(let description):
-                    return "bad query: \(description ?? "")"
-                case .badName(let description):
-                    return "bad name: \(description ?? "")"
-                case .badFamily(let description):
-                    return "bad family: \(description ?? "")"
-                case .badResponse(let description):
-                    return "bad response: \(description ?? "")"
-                case .connectionRefused(let description):
-                    return "connection refused: \(description ?? "")"
-                case .timeout(let description):
-                    return "timeout: \(description ?? "")"
-                case .eof(let description):
-                    return "EOF: \(description ?? "")"
-                case .fileIO(let description):
-                    return "file IO: \(description ?? "")"
-                case .noMemory(let description):
-                    return "no memory: \(description ?? "")"
-                case .destruction(let description):
-                    return "destruction: \(description ?? "")"
-                case .badString(let description):
-                    return "bad string: \(description ?? "")"
-                case .badFlags(let description):
-                    return "bad flags: \(description ?? "")"
-                case .noName(let description):
-                    return "no name: \(description ?? "")"
-                case .badHints(let description):
-                    return "bad hints: \(description ?? "")"
-                case .notInitialized(let description):
-                    return "not initialized: \(description ?? "")"
-                case .initError(let description):
-                    return "initialization error: \(description ?? "")"
-                case .cancelled(let description):
-                    return "cancelled: \(description ?? "")"
-                case .service(let description):
-                    return "service: \(description ?? "")"
-                case .other(let code, let description):
-                    return "other [\(code)]: \(description ?? "")"
-                }
+            fileprivate var value: Value
+            private init(_ value: Value) {
+                self.value = value
+            }
+
+            public static var noData: Self { Self(.noData) }
+
+            public static var invalidQuery: Self { Self(.invalidQuery) }
+
+            public static var serverFailure: Self { Self(.serverFailure) }
+
+            public static var notFound: Self { Self(.notFound) }
+
+            public static var notImplemented: Self { Self(.notImplemented) }
+
+            public static var serverRefused: Self { Self(.serverRefused) }
+
+            public static var badQuery: Self { Self(.badQuery) }
+
+            public static var badName: Self { Self(.badName) }
+
+            public static var badFamily: Self { Self(.badFamily) }
+
+            public static var badResponse: Self { Self(.badResponse) }
+
+            public static var connectionRefused: Self { Self(.connectionRefused) }
+
+            public static var timeout: Self { Self(.timeout) }
+
+            public static var eof: Self { Self(.eof) }
+
+            public static var fileIO: Self { Self(.fileIO) }
+
+            public static var noMemory: Self { Self(.noMemory) }
+
+            public static var destruction: Self { Self(.destruction) }
+
+            public static var badString: Self { Self(.badString) }
+
+            public static var badFlags: Self { Self(.badFlags) }
+
+            public static var noName: Self { Self(.noName) }
+
+            public static var badHints: Self { Self(.badHints) }
+
+            public static var notInitialized: Self { Self(.notInitialized) }
+
+            public static var initError: Self { Self(.initError) }
+
+            public static var cancelled: Self { Self(.cancelled) }
+
+            public static var service: Self { Self(.service) }
+
+            public static func other(_ code: Int) -> Self {
+                Self(.other(code))
             }
         }
 
-        let code: Code
+        public var code: Code
+        public var message: String
 
-        private init(code: Code) {
+        public init(code: Code, message: String = "") {
             self.code = code
+            self.message = message
         }
 
         public var description: String {
-            "\(self.code)"
-        }
-
-        public static func noData(_ description: String? = nil) -> Error {
-            .init(code: .noData(description))
-        }
-
-        public static func invalidQuery(_ description: String? = nil) -> Error {
-            .init(code: .invalidQuery(description))
-        }
-
-        public static func serverFailure(_ description: String? = nil) -> Error {
-            .init(code: .serverFailure(description))
-        }
-
-        public static func notFound(_ description: String? = nil) -> Error {
-            .init(code: .notFound(description))
-        }
-
-        public static func notImplemented(_ description: String? = nil) -> Error {
-            .init(code: .notImplemented(description))
-        }
-
-        public static func serverRefused(_ description: String? = nil) -> Error {
-            .init(code: .serverRefused(description))
-        }
-
-        public static func badQuery(_ description: String? = nil) -> Error {
-            .init(code: .badQuery(description))
-        }
-
-        public static func badName(_ description: String? = nil) -> Error {
-            .init(code: .badName(description))
-        }
-
-        public static func badFamily(_ description: String? = nil) -> Error {
-            .init(code: .badFamily(description))
-        }
-
-        public static func badResponse(_ description: String? = nil) -> Error {
-            .init(code: .badResponse(description))
-        }
-
-        public static func connectionRefused(_ description: String? = nil) -> Error {
-            .init(code: .connectionRefused(description))
-        }
-
-        public static func timeout(_ description: String? = nil) -> Error {
-            .init(code: .timeout(description))
-        }
-
-        public static func eof(_ description: String? = nil) -> Error {
-            .init(code: .eof(description))
-        }
-
-        public static func fileIO(_ description: String? = nil) -> Error {
-            .init(code: .fileIO(description))
-        }
-
-        public static func noMemory(_ description: String? = nil) -> Error {
-            .init(code: .noMemory(description))
-        }
-
-        public static func destruction(_ description: String? = nil) -> Error {
-            .init(code: .destruction(description))
-        }
-
-        public static func badString(_ description: String? = nil) -> Error {
-            .init(code: .badString(description))
-        }
-
-        public static func badFlags(_ description: String? = nil) -> Error {
-            .init(code: .badFlags(description))
-        }
-
-        public static func noName(_ description: String? = nil) -> Error {
-            .init(code: .noName(description))
-        }
-
-        public static func badHints(_ description: String? = nil) -> Error {
-            .init(code: .badHints(description))
-        }
-
-        public static func notInitialized(_ description: String? = nil) -> Error {
-            .init(code: .notInitialized(description))
-        }
-
-        public static func initError(_ description: String? = nil) -> Error {
-            .init(code: .initError(description))
-        }
-
-        public static func cancelled(_ description: String? = nil) -> Error {
-            .init(code: .cancelled(description))
-        }
-
-        public static func service(_ description: String? = nil) -> Error {
-            .init(code: .service(description))
-        }
-
-        public static func other(code: Int, _ description: String? = nil) -> Error {
-            .init(code: .other(code: code, description))
+            switch self.code.value {
+            case .noData:
+                return "no data: \(self.message)"
+            case .invalidQuery:
+                return "invalid query: \(self.message)"
+            case .serverFailure:
+                return "server failure: \(self.message)"
+            case .notFound:
+                return "not found: \(self.message)"
+            case .notImplemented:
+                return "not implemented: \(self.message)"
+            case .serverRefused:
+                return "server refused: \(self.message)"
+            case .badQuery:
+                return "bad query: \(self.message)"
+            case .badName:
+                return "bad name: \(self.message)"
+            case .badFamily:
+                return "bad family: \(self.message)"
+            case .badResponse:
+                return "bad response: \(self.message)"
+            case .connectionRefused:
+                return "connection refused: \(self.message)"
+            case .timeout:
+                return "timeout: \(self.message)"
+            case .eof:
+                return "EOF: \(self.message)"
+            case .fileIO:
+                return "file IO: \(self.message)"
+            case .noMemory:
+                return "no memory: \(self.message)"
+            case .destruction:
+                return "destruction: \(self.message)"
+            case .badString:
+                return "bad string: \(self.message)"
+            case .badFlags:
+                return "bad flags: \(self.message)"
+            case .noName:
+                return "no name: \(self.message)"
+            case .badHints:
+                return "bad hints: \(self.message)"
+            case .notInitialized:
+                return "not initialized: \(self.message)"
+            case .initError:
+                return "initialization error: \(self.message)"
+            case .cancelled:
+                return "cancelled: \(self.message)"
+            case .service:
+                return "service: \(self.message)"
+            case .other(let code):
+                return "other [\(code)]: \(self.message)"
+            }
         }
     }
 }

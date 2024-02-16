@@ -21,10 +21,7 @@ final class AresErrorTests: XCTestCase {
         let code = ARES_ENODATA
         let error = AsyncDNSResolver.Error(code: code, "some error")
 
-        guard case .noData(let description) = error.code else {
-            return XCTFail("Expected error to be .noData, got \(error.code)")
-        }
-        XCTAssertNotNil(description, "description should not be nil")
-        XCTAssertEqual(description!, "some error", "Expected description to be \"some error\", got \(description!)")
+        XCTAssertEqual(error.code, .noData)
+        XCTAssertEqual(error.message, "some error", "Expected description to be \"some error\", got \(error.message)")
     }
 }
