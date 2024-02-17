@@ -95,6 +95,7 @@ public struct AsyncDNSResolver {
 }
 
 /// API for running DNS queries.
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 public protocol DNSResolver {
     /// Lookup A records associated with `name`.
     ///
