@@ -19,8 +19,6 @@ extension AsyncDNSResolver.Error {
     /// Create an ``AsyncDNSResolver/AsyncDNSResolver/Error`` from c-ares error code.
     init(code: Int32, _ description: String = "") {
         switch code {
-        case ARES_ENODATA:
-            self = .init(code: .noData, message: description)
         case ARES_EFORMERR:
             self = .init(code: .invalidQuery, message: description)
         case ARES_ESERVFAIL:
