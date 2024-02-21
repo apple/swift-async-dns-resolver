@@ -303,12 +303,6 @@ extension Ares {
         static let instance = AQueryReplyParser()
 
         func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> [ARecord] {
-            // `hostent` is not needed, but if we don't allocate and pass it as an arg c-ares will allocate one
-            // and free it automatically, and that might cause TSAN errors in `ares_free_hostent`. If we allocate
-            // it then we control when it's freed.
-            let hostentPtrPtr = UnsafeMutablePointer<UnsafeMutablePointer<hostent>?>.allocate(capacity: 1)
-            defer { hostentPtrPtr.deallocate() }
-
             let addrttlsPointer = UnsafeMutablePointer<ares_addrttl>.allocate(capacity: Ares.maxAddresses)
             defer { addrttlsPointer.deallocate() }
             let naddrttlsPointer = UnsafeMutablePointer<CInt>.allocate(capacity: 1)
@@ -317,7 +311,7 @@ extension Ares {
             // Set a limit or else addrttl array won't be populated
             naddrttlsPointer.pointee = CInt(Ares.maxAddresses)
 
-            let parseStatus = ares_parse_a_reply(buffer, length, hostentPtrPtr, addrttlsPointer, naddrttlsPointer)
+            let parseStatus = ares_parse_a_reply(buffer, length, nil, addrttlsPointer, naddrttlsPointer)
             guard parseStatus == ARES_SUCCESS else {
                 throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse A query reply")
             }
@@ -332,12 +326,6 @@ extension Ares {
         static let instance = AAAAQueryReplyParser()
 
         func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> [AAAARecord] {
-            // `hostent` is not needed, but if we don't allocate and pass it as an arg c-ares will allocate one
-            // and free it automatically, and that might cause TSAN errors in `ares_free_hostent`. If we allocate
-            // it then we control when it's freed.
-            let hostentPtrPtr = UnsafeMutablePointer<UnsafeMutablePointer<hostent>?>.allocate(capacity: 1)
-            defer { hostentPtrPtr.deallocate() }
-
             let addrttlsPointer = UnsafeMutablePointer<ares_addr6ttl>.allocate(capacity: Ares.maxAddresses)
             defer { addrttlsPointer.deallocate() }
             let naddrttlsPointer = UnsafeMutablePointer<CInt>.allocate(capacity: 1)
@@ -346,7 +334,7 @@ extension Ares {
             // Set a limit or else addrttl array won't be populated
             naddrttlsPointer.pointee = CInt(Ares.maxAddresses)
 
-            let parseStatus = ares_parse_aaaa_reply(buffer, length, hostentPtrPtr, addrttlsPointer, naddrttlsPointer)
+            let parseStatus = ares_parse_aaaa_reply(buffer, length, nil, addrttlsPointer, naddrttlsPointer)
             guard parseStatus == ARES_SUCCESS else {
                 throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse AAAA query reply")
             }
