@@ -115,6 +115,9 @@ struct DNSSD {
                 byteCount: MemoryLayout<QueryReplyHandler>.stride,
                 alignment: MemoryLayout<QueryReplyHandler>.alignment
             )
+
+            handlerPointer.initializeMemory(as: QueryReplyHandler.self, repeating: handler, count: 1)
+
             // The handler might be called multiple times so don't deallocate inside `callback`
             defer {
                 let pointer = handlerPointer.assumingMemoryBound(to: QueryReplyHandler.self)
@@ -122,15 +125,15 @@ struct DNSSD {
                 pointer.deallocate()
             }
 
-            handlerPointer.initializeMemory(as: QueryReplyHandler.self, repeating: handler, count: 1)
-
             // This is called once per record received
             let callback: DNSServiceQueryRecordReply = { _, _, _, errorCode, _, _, _, rdlen, rdata, _, context in
                 guard let handlerPointer = context else {
                     preconditionFailure("'context' is nil. This is a bug.")
                 }
 
-                let handler = QueryReplyHandler(pointer: handlerPointer)
+                let pointer = handlerPointer.assumingMemoryBound(to: QueryReplyHandler.self)
+                let handler = pointer.pointee
+
                 // This parses a record then adds it to the stream
                 handler.handleRecord(errorCode: errorCode, data: rdata, length: rdlen)
             }
@@ -175,7 +178,7 @@ struct DNSSD {
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension DNSSD {
-    struct QueryReplyHandler {
+    class QueryReplyHandler {
         private let _handleRecord: (DNSServiceErrorType, UnsafeRawPointer?, UInt16) -> Void
 
         init<Handler: DNSSDQueryReplyHandler>(handler: Handler, _ continuation: AsyncThrowingStream<Handler.Record, Error>.Continuation) {
@@ -191,11 +194,6 @@ extension DNSSD {
                     continuation.finish(throwing: error)
                 }
             }
-        }
-
-        init(pointer: UnsafeMutableRawPointer) {
-            let handlerPointer = pointer.assumingMemoryBound(to: Self.self)
-            self = handlerPointer.pointee
         }
 
         func handleRecord(errorCode: DNSServiceErrorType, data: UnsafeRawPointer?, length: UInt16) {
