@@ -262,7 +262,7 @@ extension Ares {
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension Ares {
-    struct QueryReplyHandler {
+    class QueryReplyHandler {
         private let _handler: (CInt, UnsafeMutablePointer<CUnsignedChar>?, CInt) -> Void
 
         init<Parser: AresQueryReplyParser>(parser: Parser, _ continuation: CheckedContinuation<Parser.Reply, Error>) {
