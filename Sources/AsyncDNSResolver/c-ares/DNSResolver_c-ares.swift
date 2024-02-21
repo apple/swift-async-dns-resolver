@@ -160,8 +160,12 @@ class Ares {
                             preconditionFailure("'arg' is nil. This is a bug.")
                         }
 
-                        let handler = QueryReplyHandler(pointer: handlerPointer)
-                        defer { handlerPointer.deallocate() }
+                        let pointer = handlerPointer.assumingMemoryBound(to: QueryReplyHandler.self)
+                        let handler = pointer.pointee
+                        defer {
+                            pointer.deinitialize(count: 1)
+                            pointer.deallocate()
+                        }
 
                         handler.handle(status: status, buffer: buf, length: len)
                     }
@@ -258,7 +262,7 @@ extension Ares {
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension Ares {
-    struct QueryReplyHandler {
+    class QueryReplyHandler {
         private let _handler: (CInt, UnsafeMutablePointer<CUnsignedChar>?, CInt) -> Void
 
         init<Parser: AresQueryReplyParser>(parser: Parser, _ continuation: CheckedContinuation<Parser.Reply, Error>) {
@@ -274,11 +278,6 @@ extension Ares {
                     continuation.resume(throwing: error)
                 }
             }
-        }
-
-        init(pointer: UnsafeMutableRawPointer) {
-            let handlerPointer = pointer.assumingMemoryBound(to: Self.self)
-            self = handlerPointer.pointee
         }
 
         func handle(status: CInt, buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) {
