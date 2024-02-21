@@ -116,7 +116,11 @@ struct DNSSD {
                 alignment: MemoryLayout<QueryReplyHandler>.alignment
             )
             // The handler might be called multiple times so don't deallocate inside `callback`
-            defer { handlerPointer.deallocate() }
+            defer {
+                let pointer = handlerPointer.assumingMemoryBound(to: QueryReplyHandler.self)
+                pointer.deinitialize(count: 1)
+                pointer.deallocate()
+            }
 
             handlerPointer.initializeMemory(as: QueryReplyHandler.self, repeating: handler, count: 1)
 
