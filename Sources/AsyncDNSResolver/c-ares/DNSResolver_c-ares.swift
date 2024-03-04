@@ -437,7 +437,6 @@ extension Ares {
             default:
                 throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse SOA query reply")
             }
-
         }
     }
 
@@ -603,7 +602,6 @@ extension Ares {
             default:
                 throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse NAPTR query reply")
             }
-
         }
     }
 }
