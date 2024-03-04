@@ -18,10 +18,10 @@ import XCTest
 
 final class AresErrorTests: XCTestCase {
     func test_initFromCode() {
-        let code = ARES_ENODATA
+        let code = ARES_EFORMERR
         let error = AsyncDNSResolver.Error(code: code, "some error")
 
-        XCTAssertEqual(error.code, .noData)
+        XCTAssertEqual(error.code, .invalidQuery)
         XCTAssertEqual(error.message, "some error", "Expected description to be \"some error\", got \(error.message)")
     }
 }

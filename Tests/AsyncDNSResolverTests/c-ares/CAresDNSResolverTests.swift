@@ -159,14 +159,14 @@ final class CAresDNSResolverTests: XCTestCase {
         try await run { i in
             let reply = try await self.resolver.queryCNAME(name: "www.apple.com")
             if self.verbose {
-                print("[CNAME] run #\(i) result: \(reply)")
+                print("[CNAME] run #\(i) result: \(String(describing: reply))")
             }
         }
 
         try await run { i in
             let reply = try await self.resolver.querySOA(name: "apple.com")
             if self.verbose {
-                print("[SOA] run #\(i) result: \(reply)")
+                print("[SOA] run #\(i) result: \(String(describing: reply))")
             }
         }
 
