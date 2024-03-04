@@ -142,7 +142,7 @@ public protocol DNSResolver {
     /// - Parameters:
     ///   - name: The name to resolve.
     ///
-    /// - Returns: ``PTRRecord`` for the given name, `nil` if no record was found.
+    /// - Returns: ``PTRRecord`` for the given name.
     func queryPTR(name: String) async throws -> PTRRecord
 
     /// Lookup MX records associated with `name`.
