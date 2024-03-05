@@ -13,8 +13,8 @@
 //===----------------------------------------------------------------------===//
 
 #if canImport(Darwin)
-import dnssd
 @testable import AsyncDNSResolver
+import dnssd
 import XCTest
 
 final class DNSSDErrorTests: XCTestCase {
