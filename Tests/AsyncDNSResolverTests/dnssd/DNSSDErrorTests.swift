@@ -24,7 +24,7 @@ final class DNSSDErrorTests: XCTestCase {
             kDNSServiceErr_BadParam: .badQuery,
             kDNSServiceErr_Invalid: .badQuery,
             kDNSServiceErr_Refused: .connectionRefused,
-            kDNSServiceErr_Timeout: .timeout
+            kDNSServiceErr_Timeout: .timeout,
         ]
 
         for (code, expected) in inputs {

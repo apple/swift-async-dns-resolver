@@ -26,7 +26,7 @@ final class AresErrorTests: XCTestCase {
             ARES_EBADFLAGS: .badQuery,
             ARES_EBADRESP: .badResponse,
             ARES_ECONNREFUSED: .connectionRefused,
-            ARES_ETIMEOUT: .timeout
+            ARES_ETIMEOUT: .timeout,
         ]
 
         for (code, expected) in inputs {
