@@ -18,7 +18,6 @@ extension AsyncDNSResolver {
     public struct Error: Swift.Error, Hashable, CustomStringConvertible {
         public struct Code: Hashable, Sendable {
             fileprivate enum Value: Hashable, Sendable {
-                case noData
                 case invalidQuery
                 case serverFailure
                 case notFound
@@ -49,8 +48,6 @@ extension AsyncDNSResolver {
             private init(_ value: Value) {
                 self.value = value
             }
-
-            public static var noData: Self { Self(.noData) }
 
             public static var invalidQuery: Self { Self(.invalidQuery) }
 
@@ -113,8 +110,6 @@ extension AsyncDNSResolver {
 
         public var description: String {
             switch self.code.value {
-            case .noData:
-                return "no data: \(self.message)"
             case .invalidQuery:
                 return "invalid query: \(self.message)"
             case .serverFailure:

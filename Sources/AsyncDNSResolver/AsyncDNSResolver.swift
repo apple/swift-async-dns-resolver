@@ -64,12 +64,12 @@ public struct AsyncDNSResolver {
     }
 
     /// See ``DNSResolver/queryCNAME(name:)``.
-    public func queryCNAME(name: String) async throws -> String {
+    public func queryCNAME(name: String) async throws -> String? {
         try await self.underlying.queryCNAME(name: name)
     }
 
     /// See ``DNSResolver/querySOA(name:)``.
-    public func querySOA(name: String) async throws -> SOARecord {
+    public func querySOA(name: String) async throws -> SOARecord? {
         try await self.underlying.querySOA(name: name)
     }
 
@@ -102,7 +102,7 @@ public protocol DNSResolver {
     /// - Parameters:
     ///   - name: The name to resolve.
     ///
-    /// - Returns: ``ARecord``s for the given name.
+    /// - Returns: ``ARecord``s for the given name, empty if no records were found.
     func queryA(name: String) async throws -> [ARecord]
 
     /// Lookup AAAA records associated with `name`.
@@ -110,7 +110,7 @@ public protocol DNSResolver {
     /// - Parameters:
     ///   - name: The name to resolve.
     ///
-    /// - Returns: ``AAAARecord``s for the given name.
+    /// - Returns: ``AAAARecord``s for the given name, empty if no records were found.
     func queryAAAA(name: String) async throws -> [AAAARecord]
 
     /// Lookup NS record associated with `name`.
@@ -126,16 +126,16 @@ public protocol DNSResolver {
     /// - Parameters:
     ///   - name: The name to resolve.
     ///
-    /// - Returns: CNAME for the given name.
-    func queryCNAME(name: String) async throws -> String
+    /// - Returns: CNAME for the given name, `nil` if no record was found.
+    func queryCNAME(name: String) async throws -> String?
 
     /// Lookup SOA record associated with `name`.
     ///
     /// - Parameters:
     ///   - name: The name to resolve.
     ///
-    /// - Returns: ``SOARecord`` for the given name.
-    func querySOA(name: String) async throws -> SOARecord
+    /// - Returns: ``SOARecord`` for the given name, `nil` if no record was found.
+    func querySOA(name: String) async throws -> SOARecord?
 
     /// Lookup PTR record associated with `name`.
     ///
@@ -150,7 +150,7 @@ public protocol DNSResolver {
     /// - Parameters:
     ///   - name: The name to resolve.
     ///
-    /// - Returns: ``MXRecord``s for the given name.
+    /// - Returns: ``MXRecord``s for the given name, empty if no records were found.
     func queryMX(name: String) async throws -> [MXRecord]
 
     /// Lookup TXT records associated with `name`.
@@ -158,7 +158,7 @@ public protocol DNSResolver {
     /// - Parameters:
     ///   - name: The name to resolve.
     ///
-    /// - Returns: ``TXTRecord``s for the given name.
+    /// - Returns: ``TXTRecord``s for the given name, empty if no records were found.
     func queryTXT(name: String) async throws -> [TXTRecord]
 
     /// Lookup SRV records associated with `name`.
@@ -166,7 +166,7 @@ public protocol DNSResolver {
     /// - Parameters:
     ///   - name: The name to resolve.
     ///
-    /// - Returns: ``SRVRecord``s for the given name.
+    /// - Returns: ``SRVRecord``s for the given name, empty if no records were found.
     func querySRV(name: String) async throws -> [SRVRecord]
 }
 

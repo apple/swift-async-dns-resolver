@@ -59,17 +59,17 @@ final class DNSSDDNSResolverTests: XCTestCase {
     func test_queryCNAME() async throws {
         let reply = try await self.resolver.queryCNAME(name: "www.apple.com")
         if self.verbose {
-            print("test_queryCNAME: \(reply)")
+            print("test_queryCNAME: \(String(describing: reply))")
         }
-        XCTAssertFalse(reply.isEmpty, "should have CNAME")
+        XCTAssertFalse(reply?.isEmpty ?? true, "should have CNAME")
     }
 
     func test_querySOA() async throws {
         let reply = try await self.resolver.querySOA(name: "apple.com")
         if self.verbose {
-            print("test_querySOA: \(reply)")
+            print("test_querySOA: \(String(describing: reply))")
         }
-        XCTAssertFalse(reply.mname?.isEmpty ?? true, "should have nameserver")
+        XCTAssertFalse(reply?.mname?.isEmpty ?? true, "should have nameserver")
     }
 
     func test_queryPTR() async throws {
