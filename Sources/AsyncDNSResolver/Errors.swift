@@ -15,33 +15,14 @@
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension AsyncDNSResolver {
     /// Possible ``AsyncDNSResolver/AsyncDNSResolver`` errors.
-    public struct Error: Swift.Error, Hashable, CustomStringConvertible {
+    public struct Error: Swift.Error, CustomStringConvertible {
         public struct Code: Hashable, Sendable {
             fileprivate enum Value: Hashable, Sendable {
-                case invalidQuery
-                case serverFailure
-                case notFound
-                case notImplemented
-                case serverRefused
                 case badQuery
-                case badName
-                case badFamily
                 case badResponse
                 case connectionRefused
                 case timeout
-                case eof
-                case fileIO
-                case noMemory
-                case destruction
-                case badString
-                case badFlags
-                case noName
-                case badHints
-                case notInitialized
-                case initError
-                case cancelled
-                case service
-                case other(Int)
+                case internalError
             }
 
             fileprivate var value: Value
@@ -49,116 +30,69 @@ extension AsyncDNSResolver {
                 self.value = value
             }
 
-            public static var invalidQuery: Self { Self(.invalidQuery) }
-
-            public static var serverFailure: Self { Self(.serverFailure) }
-
-            public static var notFound: Self { Self(.notFound) }
-
-            public static var notImplemented: Self { Self(.notImplemented) }
-
-            public static var serverRefused: Self { Self(.serverRefused) }
-
+            /// The query was badly formed.
             public static var badQuery: Self { Self(.badQuery) }
 
-            public static var badName: Self { Self(.badName) }
-
-            public static var badFamily: Self { Self(.badFamily) }
-
+            /// The response couldn't be parsed.
             public static var badResponse: Self { Self(.badResponse) }
 
+            /// The server refused to accept a connection.
             public static var connectionRefused: Self { Self(.connectionRefused) }
 
+            /// The query timed out.
             public static var timeout: Self { Self(.timeout) }
 
-            public static var eof: Self { Self(.eof) }
-
-            public static var fileIO: Self { Self(.fileIO) }
-
-            public static var noMemory: Self { Self(.noMemory) }
-
-            public static var destruction: Self { Self(.destruction) }
-
-            public static var badString: Self { Self(.badString) }
-
-            public static var badFlags: Self { Self(.badFlags) }
-
-            public static var noName: Self { Self(.noName) }
-
-            public static var badHints: Self { Self(.badHints) }
-
-            public static var notInitialized: Self { Self(.notInitialized) }
-
-            public static var initError: Self { Self(.initError) }
-
-            public static var cancelled: Self { Self(.cancelled) }
-
-            public static var service: Self { Self(.service) }
-
-            public static func other(_ code: Int) -> Self {
-                Self(.other(code))
-            }
+            /// An internal error.
+            public static var internalError: Self { Self(.internalError) }
         }
 
         public var code: Code
         public var message: String
+        public var source: Swift.Error?
 
-        public init(code: Code, message: String = "") {
+        public init(code: Code, message: String = "", source: Swift.Error? = nil) {
             self.code = code
             self.message = message
+            self.source = source
         }
 
         public var description: String {
+            let name: String
             switch self.code.value {
-            case .invalidQuery:
-                return "invalid query: \(self.message)"
-            case .serverFailure:
-                return "server failure: \(self.message)"
-            case .notFound:
-                return "not found: \(self.message)"
-            case .notImplemented:
-                return "not implemented: \(self.message)"
-            case .serverRefused:
-                return "server refused: \(self.message)"
             case .badQuery:
-                return "bad query: \(self.message)"
-            case .badName:
-                return "bad name: \(self.message)"
-            case .badFamily:
-                return "bad family: \(self.message)"
+                name = "bad query"
             case .badResponse:
-                return "bad response: \(self.message)"
+                name = "bad response"
             case .connectionRefused:
-                return "connection refused: \(self.message)"
+                name = "connection refused"
             case .timeout:
-                return "timeout: \(self.message)"
-            case .eof:
-                return "EOF: \(self.message)"
-            case .fileIO:
-                return "file IO: \(self.message)"
-            case .noMemory:
-                return "no memory: \(self.message)"
-            case .destruction:
-                return "destruction: \(self.message)"
-            case .badString:
-                return "bad string: \(self.message)"
-            case .badFlags:
-                return "bad flags: \(self.message)"
-            case .noName:
-                return "no name: \(self.message)"
-            case .badHints:
-                return "bad hints: \(self.message)"
-            case .notInitialized:
-                return "not initialized: \(self.message)"
-            case .initError:
-                return "initialization error: \(self.message)"
-            case .cancelled:
-                return "cancelled: \(self.message)"
-            case .service:
-                return "service: \(self.message)"
-            case .other(let code):
-                return "other [\(code)]: \(self.message)"
+                name = "timeout"
+            case .internalError:
+                name = "internal"
             }
+
+            let suffix = self.source.map { " (\($0))" } ?? ""
+            return "\(name): \(self.message)\(suffix)"
         }
+    }
+}
+
+/// An error thrown from c-ares.
+public struct CAresError: Error, Hashable, Sendable {
+    /// The error code.
+    public var code: Int
+
+    public init(code: Int) {
+        self.code = code
+    }
+}
+
+/// An error thrown from DNSSD.
+public struct DNSSDError: Error, Hashable, Sendable {
+    /// The error code.
+    public var code: Int
+
+    public init(code: Int) {
+        self.code = code
     }
 }

@@ -155,7 +155,7 @@ struct DNSSD {
 
             // Check if query completed successfully
             guard _code == kDNSServiceErr_NoError else {
-                return continuation.finish(throwing: AsyncDNSResolver.Error(code: .other(Int(_code))))
+                return continuation.finish(throwing: AsyncDNSResolver.Error(dnssdCode: _code))
             }
 
             // Read reply from the socket (blocking) then call reply handler
@@ -198,7 +198,7 @@ extension DNSSD {
                     data = nil
                     length = 0
                 default:
-                    return continuation.finish(throwing: AsyncDNSResolver.Error(code: .other(Int(errorCode))))
+                    return continuation.finish(throwing: AsyncDNSResolver.Error(dnssdCode: errorCode))
                 }
 
                 do {
