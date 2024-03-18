@@ -115,7 +115,6 @@ struct DNSSD {
                 byteCount: MemoryLayout<QueryReplyHandler>.stride,
                 alignment: MemoryLayout<QueryReplyHandler>.alignment
             )
-
             handlerPointer.initializeMemory(as: QueryReplyHandler.self, repeating: handler, count: 1)
 
             // The handler might be called multiple times so don't deallocate inside `callback`
@@ -140,6 +139,11 @@ struct DNSSD {
 
             let serviceRefPtr = UnsafeMutablePointer<DNSServiceRef?>.allocate(capacity: 1)
             defer { serviceRefPtr.deallocate() }
+
+            continuation.onTermination = { _ in
+                // This terminates any query associated with the DNSServiceRef
+                DNSServiceRefDeallocate(serviceRefPtr.pointee)
+            }
 
             // Run the query
             let _code = DNSServiceQueryRecord(
