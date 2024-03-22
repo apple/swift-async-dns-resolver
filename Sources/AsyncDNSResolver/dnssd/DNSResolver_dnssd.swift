@@ -141,6 +141,10 @@ struct DNSSD {
             let serviceRefPtr = UnsafeMutablePointer<DNSServiceRef?>.allocate(capacity: 1)
             defer { serviceRefPtr.deallocate() }
 
+            continuation.onTermination = { _ in
+                DNSServiceRefDeallocate(serviceRefPtr.pointee)
+            }
+
             // Run the query
             let _code = DNSServiceQueryRecord(
                 serviceRefPtr,
@@ -158,9 +162,32 @@ struct DNSSD {
                 return continuation.finish(throwing: AsyncDNSResolver.Error(dnssdCode: _code))
             }
 
+            let serviceSockFD = DNSServiceRefSockFD(serviceRefPtr.pointee)
+            guard serviceSockFD != -1 else {
+                return continuation.finish(throwing: AsyncDNSResolver.Error(code: .internalError, message: "Failed to access the DNSSD service socket"))
+            }
+
+            var pollFDs = [pollfd(fd: serviceSockFD, events: Int16(POLLIN), revents: 0)]
+            while true {
+                guard !Task.isCancelled else {
+                    return continuation.finish(throwing: AsyncDNSResolver.Error(code: .cancelled))
+                }
+
+                let result = poll(&pollFDs, 1, 0)
+                guard result != -1 else {
+                    return continuation.finish(throwing: AsyncDNSResolver.Error(code: .internalError, message: "Failed to poll the DNSSD service socket"))
+                }
+
+                if result == 0 {
+                    continue
+                }
+                if result == 1 {
+                    break
+                }
+            }
+
             // Read reply from the socket (blocking) then call reply handler
             DNSServiceProcessResult(serviceRefPtr.pointee)
-            DNSServiceRefDeallocate(serviceRefPtr.pointee)
 
             // Streaming done
             continuation.finish()
@@ -174,6 +201,9 @@ struct DNSSD {
         return try replyHandler.generateReply(records: records)
     }
 }
+
+// Needed to remove the Sendable warning when deallocating DNSServiceRef in onTermination callback
+extension UnsafeMutablePointer: @unchecked Sendable where Pointee == DNSServiceRef? {}
 
 // MARK: - dnssd query reply handler
 
