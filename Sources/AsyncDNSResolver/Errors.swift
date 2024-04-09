@@ -23,7 +23,6 @@ extension AsyncDNSResolver {
                 case connectionRefused
                 case timeout
                 case internalError
-                case cancelled
             }
 
             fileprivate var value: Value
@@ -45,9 +44,6 @@ extension AsyncDNSResolver {
 
             /// An internal error.
             public static var internalError: Self { Self(.internalError) }
-
-            /// The query was cancelled.
-            public static var cancelled: Self { Self(.cancelled) }
         }
 
         public var code: Code
@@ -73,8 +69,6 @@ extension AsyncDNSResolver {
                 name = "timeout"
             case .internalError:
                 name = "internal"
-            case .cancelled:
-                name = "cancelled"
             }
 
             let suffix = self.source.map { " (\($0))" } ?? ""

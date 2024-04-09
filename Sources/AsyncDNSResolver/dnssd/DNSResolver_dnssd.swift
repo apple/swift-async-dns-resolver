@@ -100,7 +100,21 @@ extension QueryType {
 // MARK: - dnssd query wrapper
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
-struct DNSSD {
+class DNSSD {
+    private let serviceRefPtr = UnsafeMutablePointer<DNSServiceRef?>.allocate(capacity: 1)
+
+    // Wrap `handler` into a pointer so we can pass it to DNSServiceQueryRecord
+    private let replyHandlerPointer = UnsafeMutableRawPointer.allocate(
+        byteCount: MemoryLayout<QueryReplyHandler>.stride,
+        alignment: MemoryLayout<QueryReplyHandler>.alignment
+    )
+    deinit {
+        serviceRefPtr.deallocate()
+        let pointer = replyHandlerPointer.assumingMemoryBound(to: QueryReplyHandler.self)
+        pointer.deinitialize(count: 1)
+        pointer.deallocate()
+    }
+
     // Reference: https://gist.github.com/fikeminkel/a9c4bc4d0348527e8df3690e242038d3
     func query<ReplyHandler: DNSSDQueryReplyHandler>(
         type: QueryType,
@@ -110,20 +124,7 @@ struct DNSSD {
         let recordStream = AsyncThrowingStream<ReplyHandler.Record, Error> { continuation in
             let handler = QueryReplyHandler(handler: replyHandler, continuation)
 
-            // Wrap `handler` into a pointer so we can pass it to DNSServiceQueryRecord
-            let handlerPointer = UnsafeMutableRawPointer.allocate(
-                byteCount: MemoryLayout<QueryReplyHandler>.stride,
-                alignment: MemoryLayout<QueryReplyHandler>.alignment
-            )
-
-            handlerPointer.initializeMemory(as: QueryReplyHandler.self, repeating: handler, count: 1)
-
-            // The handler might be called multiple times so don't deallocate inside `callback`
-            defer {
-                let pointer = handlerPointer.assumingMemoryBound(to: QueryReplyHandler.self)
-                pointer.deinitialize(count: 1)
-                pointer.deallocate()
-            }
+            self.replyHandlerPointer.initializeMemory(as: QueryReplyHandler.self, repeating: handler, count: 1)
 
             // This is called once per record received
             let callback: DNSServiceQueryRecordReply = { _, _, _, errorCode, _, _, _, rdlen, rdata, _, context in
@@ -138,13 +139,6 @@ struct DNSSD {
                 handler.handleRecord(errorCode: errorCode, data: rdata, length: rdlen)
             }
 
-            let serviceRefPtr = UnsafeMutablePointer<DNSServiceRef?>.allocate(capacity: 1)
-            defer { serviceRefPtr.deallocate() }
-
-            continuation.onTermination = { _ in
-                DNSServiceRefDeallocate(serviceRefPtr.pointee)
-            }
-
             // Run the query
             let _code = DNSServiceQueryRecord(
                 serviceRefPtr,
@@ -154,7 +148,7 @@ struct DNSSD {
                 UInt16(type.kDNSServiceType),
                 UInt16(kDNSServiceClass_IN),
                 callback,
-                handlerPointer
+                self.replyHandlerPointer
             )
 
             // Check if query completed successfully
@@ -167,30 +161,20 @@ struct DNSSD {
                 return continuation.finish(throwing: AsyncDNSResolver.Error(code: .internalError, message: "Failed to access the DNSSD service socket"))
             }
 
-            var pollFDs = [pollfd(fd: serviceSockFD, events: Int16(POLLIN), revents: 0)]
-            while true {
-                guard !Task.isCancelled else {
-                    return continuation.finish(throwing: AsyncDNSResolver.Error(code: .cancelled))
-                }
+            let readSource = DispatchSource.makeReadSource(fileDescriptor: serviceSockFD)
+            readSource.setEventHandler {
+                // Read reply from the socket (blocking) then call reply handler
+                DNSServiceProcessResult(self.serviceRefPtr.pointee)
 
-                let result = poll(&pollFDs, 1, 0)
-                guard result != -1 else {
-                    return continuation.finish(throwing: AsyncDNSResolver.Error(code: .internalError, message: "Failed to poll the DNSSD service socket"))
-                }
-
-                if result == 0 {
-                    continue
-                }
-                if result == 1 {
-                    break
-                }
+                // Streaming done
+                continuation.finish()
             }
+            readSource.resume()
 
-            // Read reply from the socket (blocking) then call reply handler
-            DNSServiceProcessResult(serviceRefPtr.pointee)
-
-            // Streaming done
-            continuation.finish()
+            continuation.onTermination = { _ in
+                readSource.cancel()
+                DNSServiceRefDeallocate(self.serviceRefPtr.pointee)
+            }
         }
 
         // Build reply using records received
@@ -201,9 +185,6 @@ struct DNSSD {
         return try replyHandler.generateReply(records: records)
     }
 }
-
-// Needed to remove the Sendable warning when deallocating DNSServiceRef in onTermination callback
-extension UnsafeMutablePointer: @unchecked Sendable where Pointee == DNSServiceRef? {}
 
 // MARK: - dnssd query reply handler
 
