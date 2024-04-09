@@ -101,7 +101,6 @@ extension QueryType {
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 struct DNSSD {
-
     // Reference: https://gist.github.com/fikeminkel/a9c4bc4d0348527e8df3690e242038d3
     func query<ReplyHandler: DNSSDQueryReplyHandler>(
         type: QueryType,
