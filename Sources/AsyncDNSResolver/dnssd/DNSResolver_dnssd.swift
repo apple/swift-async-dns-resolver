@@ -100,20 +100,7 @@ extension QueryType {
 // MARK: - dnssd query wrapper
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
-class DNSSD {
-    private let serviceRefPtr = UnsafeMutablePointer<DNSServiceRef?>.allocate(capacity: 1)
-
-    // Wrap `handler` into a pointer so we can pass it to DNSServiceQueryRecord
-    private let replyHandlerPointer = UnsafeMutableRawPointer.allocate(
-        byteCount: MemoryLayout<QueryReplyHandler>.stride,
-        alignment: MemoryLayout<QueryReplyHandler>.alignment
-    )
-    deinit {
-        serviceRefPtr.deallocate()
-        let pointer = replyHandlerPointer.assumingMemoryBound(to: QueryReplyHandler.self)
-        pointer.deinitialize(count: 1)
-        pointer.deallocate()
-    }
+struct DNSSD {
 
     // Reference: https://gist.github.com/fikeminkel/a9c4bc4d0348527e8df3690e242038d3
     func query<ReplyHandler: DNSSDQueryReplyHandler>(
@@ -124,7 +111,7 @@ class DNSSD {
         let recordStream = AsyncThrowingStream<ReplyHandler.Record, Error> { continuation in
             let handler = QueryReplyHandler(handler: replyHandler, continuation)
 
-            self.replyHandlerPointer.initializeMemory(as: QueryReplyHandler.self, repeating: handler, count: 1)
+            let query = Query(handler: handler)
 
             // This is called once per record received
             let callback: DNSServiceQueryRecordReply = { _, _, _, errorCode, _, _, _, rdlen, rdata, _, context in
@@ -141,14 +128,14 @@ class DNSSD {
 
             // Run the query
             let _code = DNSServiceQueryRecord(
-                serviceRefPtr,
+                query.serviceRefPtr,
                 kDNSServiceFlagsTimeout,
                 0,
                 name,
                 UInt16(type.kDNSServiceType),
                 UInt16(kDNSServiceClass_IN),
                 callback,
-                self.replyHandlerPointer
+                query.replyHandlerPointer
             )
 
             // Check if query completed successfully
@@ -156,7 +143,7 @@ class DNSSD {
                 return continuation.finish(throwing: AsyncDNSResolver.Error(dnssdCode: _code))
             }
 
-            let serviceSockFD = DNSServiceRefSockFD(serviceRefPtr.pointee)
+            let serviceSockFD = DNSServiceRefSockFD(query.serviceRefPtr.pointee)
             guard serviceSockFD != -1 else {
                 return continuation.finish(throwing: AsyncDNSResolver.Error(code: .internalError, message: "Failed to access the DNSSD service socket"))
             }
@@ -164,7 +151,7 @@ class DNSSD {
             let readSource = DispatchSource.makeReadSource(fileDescriptor: serviceSockFD)
             readSource.setEventHandler {
                 // Read reply from the socket (blocking) then call reply handler
-                DNSServiceProcessResult(self.serviceRefPtr.pointee)
+                DNSServiceProcessResult(query.serviceRefPtr.pointee)
 
                 // Streaming done
                 continuation.finish()
@@ -173,7 +160,7 @@ class DNSSD {
 
             continuation.onTermination = { _ in
                 readSource.cancel()
-                DNSServiceRefDeallocate(self.serviceRefPtr.pointee)
+                DNSServiceRefDeallocate(query.serviceRefPtr.pointee)
             }
         }
 
@@ -190,6 +177,27 @@ class DNSSD {
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension DNSSD {
+    // Class used to manage both the handler and the serviceRef pointers, so that they are deallocated when we are done using them
+    class Query {
+        let serviceRefPtr = UnsafeMutablePointer<DNSServiceRef?>.allocate(capacity: 1)
+
+        let replyHandlerPointer = UnsafeMutableRawPointer.allocate(
+            byteCount: MemoryLayout<QueryReplyHandler>.stride,
+            alignment: MemoryLayout<QueryReplyHandler>.alignment
+        )
+        init(handler: QueryReplyHandler) {
+            // Wrap 'handler' into a pointer so we can pass it to DNSServiceQueryRecord
+            self.replyHandlerPointer.initializeMemory(as: QueryReplyHandler.self, repeating: handler, count: 1)
+        }
+
+        deinit {
+            serviceRefPtr.deallocate()
+            let pointer = replyHandlerPointer.assumingMemoryBound(to: QueryReplyHandler.self)
+            pointer.deinitialize(count: 1)
+            pointer.deallocate()
+        }
+    }
+
     class QueryReplyHandler {
         private let _handleRecord: (DNSServiceErrorType, UnsafeRawPointer?, UInt16) -> Void
 
