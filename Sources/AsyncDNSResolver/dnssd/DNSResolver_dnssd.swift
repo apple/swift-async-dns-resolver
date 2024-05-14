@@ -127,7 +127,7 @@ struct DNSSD {
 
             // Wrap 'handler' into a pointer so we can pass it to DNSServiceQueryRecord
             let replyHandlerPointer = UnsafeMutablePointer<QueryReplyHandler>.allocate(capacity: 1)
-            replyHandlerPointer.initialize(repeating: handler, count: 1)
+            replyHandlerPointer.initialize(to: handler)
 
             // Run the query
             let _code = DNSServiceQueryRecord(
@@ -143,13 +143,13 @@ struct DNSSD {
 
             // Check if query completed successfully
             guard _code == kDNSServiceErr_NoError else {
-                self.deallocatePointers(serviceRefPointer: serviceRefPointer, replyHandlerPointer: replyHandlerPointer)
+                DNSSD.deallocatePointers(serviceRefPointer: serviceRefPointer, replyHandlerPointer: replyHandlerPointer)
                 return continuation.finish(throwing: AsyncDNSResolver.Error(dnssdCode: _code))
             }
 
             let serviceSockFD = DNSServiceRefSockFD(serviceRefPointer.pointee)
             guard serviceSockFD != -1 else {
-                self.deallocatePointers(serviceRefPointer: serviceRefPointer, replyHandlerPointer: replyHandlerPointer)
+                DNSSD.deallocatePointers(serviceRefPointer: serviceRefPointer, replyHandlerPointer: replyHandlerPointer)
                 return continuation.finish(throwing: AsyncDNSResolver.Error(code: .internalError, message: "Failed to access the DNSSD service socket"))
             }
 
@@ -163,7 +163,7 @@ struct DNSSD {
             }
 
             readSource.setCancelHandler {
-                self.deallocatePointers(serviceRefPointer: serviceRefPointer, replyHandlerPointer: replyHandlerPointer)
+                DNSSD.deallocatePointers(serviceRefPointer: serviceRefPointer, replyHandlerPointer: replyHandlerPointer)
                 close(serviceSockFD)
             }
             readSource.resume()
@@ -181,7 +181,7 @@ struct DNSSD {
         return try replyHandler.generateReply(records: records)
     }
 
-    private func deallocatePointers(serviceRefPointer: UnsafeMutablePointer<DNSServiceRef?>, replyHandlerPointer: UnsafeMutablePointer<DNSSD.QueryReplyHandler>) {
+    private static func deallocatePointers(serviceRefPointer: UnsafeMutablePointer<DNSServiceRef?>, replyHandlerPointer: UnsafeMutablePointer<DNSSD.QueryReplyHandler>) {
         DNSServiceRefDeallocate(serviceRefPointer.pointee)
         serviceRefPointer.deallocate()
         replyHandlerPointer.deallocate()
