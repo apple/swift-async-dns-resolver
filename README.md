@@ -33,7 +33,7 @@ Next, in your target, add `AsyncDNSResolver` to your dependencies:
 import AsyncDNSResolver
 
 // Initialize a resolver
-let resolver = AsyncDNSResolver()
+let resolver = try AsyncDNSResolver()
 
 // Run a query
 let aRecords = try await resolver.queryA(name: "apple.com")
