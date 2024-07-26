@@ -420,7 +420,14 @@ extension DNSSD {
             guard let ptr = data?.assumingMemoryBound(to: UInt8.self) else {
                 return nil
             }
-            let txt = String(cString: ptr.advanced(by: 1))
+
+            let bufferPtr = UnsafeBufferPointer(start: ptr, count: Int(length))
+            var buffer = Array(bufferPtr)[...]
+
+            guard let txt = self.readName(&buffer, separator: "") else {
+                throw AsyncDNSResolver.Error(code: .badResponse)
+            }
+
             return TXTRecord(txt: txt)
         }
 
@@ -462,7 +469,7 @@ extension DNSSD {
 }
 
 extension DNSSDQueryReplyHandler {
-    func readName(_ buffer: inout ArraySlice<UInt8>) -> String? {
+    func readName(_ buffer: inout ArraySlice<UInt8>, separator: String = ".") -> String? {
         var parts: [String] = []
         while let length = buffer.readInteger(as: UInt8.self),
               length > 0,
@@ -470,7 +477,7 @@ extension DNSSDQueryReplyHandler {
             parts.append(part)
         }
 
-        return parts.isEmpty ? nil : parts.joined(separator: ".")
+        return parts.isEmpty ? nil : parts.joined(separator: separator)
     }
 
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
