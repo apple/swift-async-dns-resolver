@@ -59,17 +59,17 @@ final class DNSSDDNSResolverTests: XCTestCase {
     func test_queryCNAME() async throws {
         let reply = try await self.resolver.queryCNAME(name: "www.apple.com")
         if self.verbose {
-            print("test_queryCNAME: \(reply)")
+            print("test_queryCNAME: \(String(describing: reply))")
         }
-        XCTAssertFalse(reply.isEmpty, "should have CNAME")
+        XCTAssertFalse(reply?.isEmpty ?? true, "should have CNAME")
     }
 
     func test_querySOA() async throws {
         let reply = try await self.resolver.querySOA(name: "apple.com")
         if self.verbose {
-            print("test_querySOA: \(reply)")
+            print("test_querySOA: \(String(describing: reply))")
         }
-        XCTAssertFalse(reply.mname?.isEmpty ?? true, "should have nameserver")
+        XCTAssertFalse(reply?.mname?.isEmpty ?? true, "should have nameserver")
     }
 
     func test_queryPTR() async throws {
@@ -102,6 +102,36 @@ final class DNSSDDNSResolverTests: XCTestCase {
             print("test_querySRV: \(reply)")
         }
         XCTAssertFalse(reply.isEmpty, "should have SRV record(s)")
+    }
+
+    func test_parseA() throws {
+        let addrBytes: [UInt8] = [38, 32, 1, 73]
+        try addrBytes.withUnsafeBufferPointer {
+            let record = try DNSSD.AQueryReplyHandler.instance.parseRecord(data: $0.baseAddress, length: UInt16($0.count))
+            XCTAssertEqual(record, ARecord(address: .init(address: "38.32.1.73"), ttl: nil))
+        }
+    }
+
+    func test_parseATooShort() throws {
+        let addrBytes: [UInt8] = [38, 32, 1]
+        try addrBytes.withUnsafeBufferPointer {
+            XCTAssertThrowsError(
+                try DNSSD.AQueryReplyHandler.instance.parseRecord(
+                    data: $0.baseAddress, length: UInt16($0.count)
+                )
+            )
+        }
+    }
+
+    func test_parseAAAATooShort() throws {
+        let addrBytes: [UInt8] = [38, 32, 1, 73, 17, 11, 71, 14, 0, 0, 0, 0, 0, 0, 14]
+        try addrBytes.withUnsafeBufferPointer {
+            XCTAssertThrowsError(
+                try DNSSD.AAAAQueryReplyHandler.instance.parseRecord(
+                    data: $0.baseAddress, length: UInt16($0.count)
+                )
+            )
+        }
     }
 
     func test_concurrency() async throws {
@@ -143,14 +173,14 @@ final class DNSSDDNSResolverTests: XCTestCase {
         try await run { i in
             let reply = try await self.resolver.queryCNAME(name: "www.apple.com")
             if self.verbose {
-                print("[CNAME] run #\(i) result: \(reply)")
+                print("[CNAME] run #\(i) result: \(String(describing: reply))")
             }
         }
 
         try await run { i in
             let reply = try await self.resolver.querySOA(name: "apple.com")
             if self.verbose {
-                print("[SOA] run #\(i) result: \(reply)")
+                print("[SOA] run #\(i) result: \(String(describing: reply))")
             }
         }
 

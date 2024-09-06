@@ -28,7 +28,7 @@ final class AresChannelTests: XCTestCase {
         guard let channel = try? AresChannel(options: options) else {
             return XCTFail("Channel not initialized")
         }
-        guard let _ = await channel.pointer.pointee else {
+        guard let _ = channel.pointer.pointee else {
             return XCTFail("Underlying ares_channel is nil")
         }
     }

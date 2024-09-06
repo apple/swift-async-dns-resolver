@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2020-2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2020-2024 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -15,6 +15,7 @@
 import CAsyncDNSResolver
 
 /// ``DNSResolver`` implementation backed by c-ares C library.
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 public class CAresDNSResolver: DNSResolver {
     let options: Options
     let ares: Ares
@@ -49,12 +50,12 @@ public class CAresDNSResolver: DNSResolver {
     }
 
     /// See ``DNSResolver/queryCNAME(name:)``.
-    public func queryCNAME(name: String) async throws -> String {
+    public func queryCNAME(name: String) async throws -> String? {
         try await self.ares.query(type: .CNAME, name: name, replyParser: Ares.CNAMEQueryReplyParser.instance)
     }
 
     /// See ``DNSResolver/querySOA(name:)``.
-    public func querySOA(name: String) async throws -> SOARecord {
+    public func querySOA(name: String) async throws -> SOARecord? {
         try await self.ares.query(type: .SOA, name: name, replyParser: Ares.SOAQueryReplyParser.instance)
     }
 
@@ -119,6 +120,7 @@ extension QueryType {
 
 // MARK: - c-ares query wrapper
 
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 class Ares {
     typealias QueryCallback = @convention(c) (UnsafeMutableRawPointer?, CInt, CInt, UnsafeMutablePointer<CUnsignedChar>?, CInt) -> Void
 
@@ -141,33 +143,44 @@ class Ares {
         name: String,
         replyParser: ReplyParser
     ) async throws -> ReplyParser.Reply {
-        try await withCheckedThrowingContinuation { continuation in
-            let handler = QueryReplyHandler(parser: replyParser, continuation)
+        try await withTaskCancellationHandler(
+            operation: {
+                try await withCheckedThrowingContinuation { continuation in
+                    let handler = QueryReplyHandler(parser: replyParser, continuation)
 
-            // Wrap `handler` into a pointer so we can pass it to callback. The pointer will be deallocated in there later.
-            let handlerPointer = UnsafeMutableRawPointer.allocate(
-                byteCount: MemoryLayout<QueryReplyHandler>.stride,
-                alignment: MemoryLayout<QueryReplyHandler>.alignment
-            )
-            handlerPointer.initializeMemory(as: QueryReplyHandler.self, repeating: handler, count: 1)
+                    // Wrap `handler` into a pointer so we can pass it to callback. The pointer will be deallocated in there later.
+                    let handlerPointer = UnsafeMutableRawPointer.allocate(
+                        byteCount: MemoryLayout<QueryReplyHandler>.stride,
+                        alignment: MemoryLayout<QueryReplyHandler>.alignment
+                    )
+                    handlerPointer.initializeMemory(as: QueryReplyHandler.self, repeating: handler, count: 1)
 
-            let queryCallback: QueryCallback = { arg, status, _, buf, len in
-                guard let handlerPointer = arg else {
-                    preconditionFailure("'arg' is nil. This is a bug.")
+                    let queryCallback: QueryCallback = { arg, status, _, buf, len in
+                        guard let handlerPointer = arg else {
+                            preconditionFailure("'arg' is nil. This is a bug.")
+                        }
+
+                        let pointer = handlerPointer.assumingMemoryBound(to: QueryReplyHandler.self)
+                        let handler = pointer.pointee
+                        defer {
+                            pointer.deinitialize(count: 1)
+                            pointer.deallocate()
+                        }
+
+                        handler.handle(status: status, buffer: buf, length: len)
+                    }
+
+                    self.channel.withChannel { channel in
+                        ares_query(channel, name, DNSClass.IN.rawValue, type.intValue, queryCallback, handlerPointer)
+                    }
                 }
-
-                let handler = QueryReplyHandler(pointer: handlerPointer)
-                defer { handlerPointer.deallocate() }
-
-                handler.handle(status: status, buffer: buf, length: len)
-            }
-
-            Task {
-                await self.channel.withChannel { channel in
-                    ares_query(channel, name, DNSClass.IN.rawValue, type.intValue, queryCallback, handlerPointer)
+            },
+            onCancel: {
+                self.channel.withChannel { channel in
+                    ares_cancel(channel)
                 }
             }
-        }
+        )
     }
 
     /// See `arpa/nameser.h`.
@@ -176,6 +189,7 @@ class Ares {
     }
 }
 
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension Ares {
     // TODO: implement this more nicely using NIO EventLoop?
     // See:
@@ -188,6 +202,12 @@ extension Ares {
         private let channel: AresChannel
         private let pollIntervalNanos: UInt64
 
+        private var pollingTask: Task<Void, Error>?
+
+        deinit {
+            self.pollingTask?.cancel()
+        }
+
         init(channel: AresChannel, pollIntervalNanos: UInt64 = QueryProcessor.defaultPollInterval) {
             self.channel = channel
             self.pollIntervalNanos = pollIntervalNanos
@@ -199,7 +219,7 @@ extension Ares {
         func poll() async {
             var socks = [ares_socket_t](repeating: ares_socket_t(), count: Int(ARES_GETSOCK_MAXNUM))
 
-            await self.channel.withChannel { channel in
+            self.channel.withChannel { channel in
                 // Indicates what actions (i.e., read/write) to wait for on the different sockets
                 let bitmask = UInt32(ares_getsock(channel, &socks, ARES_GETSOCK_MAXNUM))
 
@@ -227,9 +247,12 @@ extension Ares {
         }
 
         private func schedule() {
-            Task {
-                try await Task.sleep(nanoseconds: self.pollIntervalNanos)
-                await self.poll()
+            self.pollingTask = Task { [weak self] in
+                guard let s = self else {
+                    return
+                }
+                try await Task.sleep(nanoseconds: s.pollIntervalNanos)
+                await s.poll()
             }
         }
     }
@@ -237,14 +260,15 @@ extension Ares {
 
 // MARK: - c-ares query reply handler
 
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension Ares {
-    struct QueryReplyHandler {
+    class QueryReplyHandler {
         private let _handler: (CInt, UnsafeMutablePointer<CUnsignedChar>?, CInt) -> Void
 
         init<Parser: AresQueryReplyParser>(parser: Parser, _ continuation: CheckedContinuation<Parser.Reply, Error>) {
             self._handler = { status, buffer, length in
-                guard status == ARES_SUCCESS else {
-                    return continuation.resume(throwing: AsyncDNSResolver.Error(code: status))
+                guard status == ARES_SUCCESS || status == ARES_ENODATA else {
+                    return continuation.resume(throwing: AsyncDNSResolver.Error(cAresCode: status))
                 }
 
                 do {
@@ -254,11 +278,6 @@ extension Ares {
                     continuation.resume(throwing: error)
                 }
             }
-        }
-
-        init(pointer: UnsafeMutableRawPointer) {
-            let handlerPointer = pointer.assumingMemoryBound(to: Self.self)
-            self = handlerPointer.pointee
         }
 
         func handle(status: CInt, buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) {
@@ -275,6 +294,7 @@ protocol AresQueryReplyParser {
     func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> Reply
 }
 
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension Ares {
     static let maxAddresses: Int = 32
 
@@ -282,12 +302,6 @@ extension Ares {
         static let instance = AQueryReplyParser()
 
         func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> [ARecord] {
-            // `hostent` is not needed, but if we don't allocate and pass it as an arg c-ares will allocate one
-            // and free it automatically, and that might cause TSAN errors in `ares_free_hostent`. If we allocate
-            // it then we control when it's freed.
-            let hostentPtrPtr = UnsafeMutablePointer<UnsafeMutablePointer<hostent>?>.allocate(capacity: 1)
-            defer { hostentPtrPtr.deallocate() }
-
             let addrttlsPointer = UnsafeMutablePointer<ares_addrttl>.allocate(capacity: Ares.maxAddresses)
             defer { addrttlsPointer.deallocate() }
             let naddrttlsPointer = UnsafeMutablePointer<CInt>.allocate(capacity: 1)
@@ -296,14 +310,20 @@ extension Ares {
             // Set a limit or else addrttl array won't be populated
             naddrttlsPointer.pointee = CInt(Ares.maxAddresses)
 
-            let parseStatus = ares_parse_a_reply(buffer, length, hostentPtrPtr, addrttlsPointer, naddrttlsPointer)
-            guard parseStatus == ARES_SUCCESS else {
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse A query reply")
-            }
+            let parseStatus = ares_parse_a_reply(buffer, length, nil, addrttlsPointer, naddrttlsPointer)
 
-            let records = Array(UnsafeBufferPointer(start: addrttlsPointer, count: Int(naddrttlsPointer.pointee)))
-                .map { ARecord($0) }
-            return records
+            switch parseStatus {
+            case ARES_SUCCESS:
+                let records = Array(UnsafeBufferPointer(start: addrttlsPointer, count: Int(naddrttlsPointer.pointee)))
+                    .map { ARecord($0) }
+                return records
+
+            case ARES_ENODATA:
+                return []
+
+            default:
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse A query reply")
+            }
         }
     }
 
@@ -311,12 +331,6 @@ extension Ares {
         static let instance = AAAAQueryReplyParser()
 
         func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> [AAAARecord] {
-            // `hostent` is not needed, but if we don't allocate and pass it as an arg c-ares will allocate one
-            // and free it automatically, and that might cause TSAN errors in `ares_free_hostent`. If we allocate
-            // it then we control when it's freed.
-            let hostentPtrPtr = UnsafeMutablePointer<UnsafeMutablePointer<hostent>?>.allocate(capacity: 1)
-            defer { hostentPtrPtr.deallocate() }
-
             let addrttlsPointer = UnsafeMutablePointer<ares_addr6ttl>.allocate(capacity: Ares.maxAddresses)
             defer { addrttlsPointer.deallocate() }
             let naddrttlsPointer = UnsafeMutablePointer<CInt>.allocate(capacity: 1)
@@ -325,14 +339,20 @@ extension Ares {
             // Set a limit or else addrttl array won't be populated
             naddrttlsPointer.pointee = CInt(Ares.maxAddresses)
 
-            let parseStatus = ares_parse_aaaa_reply(buffer, length, hostentPtrPtr, addrttlsPointer, naddrttlsPointer)
-            guard parseStatus == ARES_SUCCESS else {
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse AAAA query reply")
-            }
+            let parseStatus = ares_parse_aaaa_reply(buffer, length, nil, addrttlsPointer, naddrttlsPointer)
 
-            let records = Array(UnsafeBufferPointer(start: addrttlsPointer, count: Int(naddrttlsPointer.pointee)))
-                .map { AAAARecord($0) }
-            return records
+            switch parseStatus {
+            case ARES_SUCCESS:
+                let records = Array(UnsafeBufferPointer(start: addrttlsPointer, count: Int(naddrttlsPointer.pointee)))
+                    .map { AAAARecord($0) }
+                return records
+
+            case ARES_ENODATA:
+                return []
+
+            default:
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse AAAA query reply")
+            }
         }
     }
 
@@ -344,64 +364,79 @@ extension Ares {
             defer { hostentPtrPtr.deallocate() }
 
             let parseStatus = ares_parse_ns_reply(buffer, length, hostentPtrPtr)
-            guard parseStatus == ARES_SUCCESS else {
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse NS query reply")
-            }
 
-            guard let hostent = hostentPtrPtr.pointee?.pointee else {
-                throw AsyncDNSResolver.Error.noData("no NS records found")
-            }
+            switch parseStatus {
+            case ARES_SUCCESS:
+                guard let hostent = hostentPtrPtr.pointee?.pointee else {
+                    return NSRecord(nameservers: [])
+                }
 
-            let nameServers = toStringArray(hostent.h_aliases)
-            return NSRecord(nameservers: nameServers ?? [])
+                let nameServers = toStringArray(hostent.h_aliases)
+                return NSRecord(nameservers: nameServers ?? [])
+
+            case ARES_ENODATA:
+                return NSRecord(nameservers: [])
+
+            default:
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse NS query reply")
+            }
         }
     }
 
     struct CNAMEQueryReplyParser: AresQueryReplyParser {
         static let instance = CNAMEQueryReplyParser()
 
-        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> String {
+        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> String? {
             let hostentPtrPtr = UnsafeMutablePointer<UnsafeMutablePointer<hostent>?>.allocate(capacity: 1)
             defer { hostentPtrPtr.deallocate() }
 
             let parseStatus = ares_parse_a_reply(buffer, length, hostentPtrPtr, nil, nil)
-            guard parseStatus == ARES_SUCCESS else {
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse CNAME query reply")
-            }
 
-            guard let hostent = hostentPtrPtr.pointee?.pointee else {
-                throw AsyncDNSResolver.Error.noData("no CNAME record found")
-            }
+            switch parseStatus {
+            case ARES_SUCCESS:
+                guard let hostent = hostentPtrPtr.pointee?.pointee else {
+                    return nil
+                }
+                return String(cString: hostent.h_name)
 
-            return String(cString: hostent.h_name)
+            case ARES_ENODATA:
+                return nil
+            default:
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse CNAME query reply")
+            }
         }
     }
 
     struct SOAQueryReplyParser: AresQueryReplyParser {
         static let instance = SOAQueryReplyParser()
 
-        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> SOARecord {
+        func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> SOARecord? {
             let soaReplyPtrPtr = UnsafeMutablePointer<UnsafeMutablePointer<ares_soa_reply>?>.allocate(capacity: 1)
             defer { soaReplyPtrPtr.deallocate() }
 
             let parseStatus = ares_parse_soa_reply(buffer, length, soaReplyPtrPtr)
-            guard parseStatus == ARES_SUCCESS else {
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse SOA query reply")
-            }
+            switch parseStatus {
+            case ARES_SUCCESS:
+                guard let soaReply = soaReplyPtrPtr.pointee?.pointee else {
+                    return nil
+                }
 
-            guard let soaReply = soaReplyPtrPtr.pointee?.pointee else {
-                throw AsyncDNSResolver.Error.noData("no SOA record found")
-            }
+                return SOARecord(
+                    mname: soaReply.nsname.map { String(cString: $0) },
+                    rname: soaReply.hostmaster.map { String(cString: $0) },
+                    serial: soaReply.serial,
+                    refresh: soaReply.refresh,
+                    retry: soaReply.retry,
+                    expire: soaReply.expire,
+                    ttl: soaReply.minttl
+                )
 
-            return SOARecord(
-                mname: soaReply.nsname.map { String(cString: $0) },
-                rname: soaReply.hostmaster.map { String(cString: $0) },
-                serial: soaReply.serial,
-                refresh: soaReply.refresh,
-                retry: soaReply.retry,
-                expire: soaReply.expire,
-                ttl: soaReply.minttl
-            )
+            case ARES_ENODATA:
+                return nil
+
+            default:
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse SOA query reply")
+            }
         }
     }
 
@@ -415,16 +450,22 @@ extension Ares {
             defer { hostentPtrPtr.deallocate() }
 
             let parseStatus = ares_parse_ptr_reply(buffer, length, dummyAddrPointer, INET_ADDRSTRLEN, AF_INET, hostentPtrPtr)
-            guard parseStatus == ARES_SUCCESS else {
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse PTR query record")
-            }
 
-            guard let hostent = hostentPtrPtr.pointee?.pointee else {
-                throw AsyncDNSResolver.Error.noData("no PTR record found")
-            }
+            switch parseStatus {
+            case ARES_SUCCESS:
+                guard let hostent = hostentPtrPtr.pointee?.pointee else {
+                    return PTRRecord(names: [])
+                }
 
-            let hostnames = toStringArray(hostent.h_aliases)
-            return PTRRecord(names: hostnames ?? [])
+                let hostnames = toStringArray(hostent.h_aliases)
+                return PTRRecord(names: hostnames ?? [])
+
+            case ARES_ENODATA:
+                return PTRRecord(names: [])
+
+            default:
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse PTR query record")
+            }
         }
     }
 
@@ -436,22 +477,27 @@ extension Ares {
             defer { mxsPointer.deallocate() }
 
             let parseStatus = ares_parse_mx_reply(buffer, length, mxsPointer)
-            guard parseStatus == ARES_SUCCESS else {
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse MX query record")
-            }
-
-            var mxRecords = [MXRecord]()
-            var mxRecordOptional = mxsPointer.pointee?.pointee
-            while let mxRecord = mxRecordOptional {
-                mxRecords.append(
-                    MXRecord(
-                        host: String(cString: mxRecord.host),
-                        priority: mxRecord.priority
+            switch parseStatus {
+            case ARES_SUCCESS:
+                var mxRecords = [MXRecord]()
+                var mxRecordOptional = mxsPointer.pointee?.pointee
+                while let mxRecord = mxRecordOptional {
+                    mxRecords.append(
+                        MXRecord(
+                            host: String(cString: mxRecord.host),
+                            priority: mxRecord.priority
+                        )
                     )
-                )
-                mxRecordOptional = mxRecord.next?.pointee
+                    mxRecordOptional = mxRecord.next?.pointee
+                }
+                return mxRecords
+
+            case ARES_ENODATA:
+                return []
+
+            default:
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse MX query record")
             }
-            return mxRecords
         }
     }
 
@@ -463,21 +509,27 @@ extension Ares {
             defer { txtsPointer.deallocate() }
 
             let parseStatus = ares_parse_txt_reply(buffer, length, txtsPointer)
-            guard parseStatus == ARES_SUCCESS else {
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse TXT query reply")
-            }
 
-            var txtRecords = [TXTRecord]()
-            var txtRecordOptional = txtsPointer.pointee?.pointee
-            while let txtRecord = txtRecordOptional {
-                txtRecords.append(
-                    TXTRecord(
-                        txt: String(cString: txtRecord.txt)
+            switch parseStatus {
+            case ARES_SUCCESS:
+                var txtRecords = [TXTRecord]()
+                var txtRecordOptional = txtsPointer.pointee?.pointee
+                while let txtRecord = txtRecordOptional {
+                    txtRecords.append(
+                        TXTRecord(
+                            txt: String(cString: txtRecord.txt)
+                        )
                     )
-                )
-                txtRecordOptional = txtRecord.next?.pointee
+                    txtRecordOptional = txtRecord.next?.pointee
+                }
+                return txtRecords
+
+            case ARES_ENODATA:
+                return []
+
+            default:
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse TXT query reply")
             }
-            return txtRecords
         }
     }
 
@@ -489,24 +541,30 @@ extension Ares {
             defer { replyPointer.deallocate() }
 
             let parseStatus = ares_parse_srv_reply(buffer, length, replyPointer)
-            guard parseStatus == ARES_SUCCESS else {
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse SRV query reply")
-            }
 
-            var srvRecords = [SRVRecord]()
-            var srvRecordOptional = replyPointer.pointee?.pointee
-            while let srvRecord = srvRecordOptional {
-                srvRecords.append(
-                    SRVRecord(
-                        host: String(cString: srvRecord.host),
-                        port: srvRecord.port,
-                        weight: srvRecord.weight,
-                        priority: srvRecord.priority
+            switch parseStatus {
+            case ARES_SUCCESS:
+                var srvRecords = [SRVRecord]()
+                var srvRecordOptional = replyPointer.pointee?.pointee
+                while let srvRecord = srvRecordOptional {
+                    srvRecords.append(
+                        SRVRecord(
+                            host: String(cString: srvRecord.host),
+                            port: srvRecord.port,
+                            weight: srvRecord.weight,
+                            priority: srvRecord.priority
+                        )
                     )
-                )
-                srvRecordOptional = srvRecord.next?.pointee
+                    srvRecordOptional = srvRecord.next?.pointee
+                }
+                return srvRecords
+
+            case ARES_ENODATA:
+                return []
+
+            default:
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse SRV query reply")
             }
-            return srvRecords
         }
     }
 
@@ -518,26 +576,32 @@ extension Ares {
             defer { naptrsPointer.deallocate() }
 
             let parseStatus = ares_parse_naptr_reply(buffer, length, naptrsPointer)
-            guard parseStatus == ARES_SUCCESS else {
-                throw AsyncDNSResolver.Error(code: parseStatus, "failed to parse NAPTR query reply")
-            }
 
-            var naptrRecords = [NAPTRRecord]()
-            var naptrRecordOptional = naptrsPointer.pointee?.pointee
-            while let naptrRecord = naptrRecordOptional {
-                naptrRecords.append(
-                    NAPTRRecord(
-                        flags: String(cString: naptrRecord.flags),
-                        service: String(cString: naptrRecord.service),
-                        regExp: String(cString: naptrRecord.regexp),
-                        replacement: String(cString: naptrRecord.replacement),
-                        order: naptrRecord.order,
-                        preference: naptrRecord.preference
+            switch parseStatus {
+            case ARES_SUCCESS:
+                var naptrRecords = [NAPTRRecord]()
+                var naptrRecordOptional = naptrsPointer.pointee?.pointee
+                while let naptrRecord = naptrRecordOptional {
+                    naptrRecords.append(
+                        NAPTRRecord(
+                            flags: String(cString: naptrRecord.flags),
+                            service: String(cString: naptrRecord.service),
+                            regExp: String(cString: naptrRecord.regexp),
+                            replacement: String(cString: naptrRecord.replacement),
+                            order: naptrRecord.order,
+                            preference: naptrRecord.preference
+                        )
                     )
-                )
-                naptrRecordOptional = naptrRecord.next?.pointee
+                    naptrRecordOptional = naptrRecord.next?.pointee
+                }
+                return naptrRecords
+
+            case ARES_ENODATA:
+                return []
+
+            default:
+                throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse NAPTR query reply")
             }
-            return naptrRecords
         }
     }
 }
@@ -558,32 +622,34 @@ private func toStringArray(_ arrayPointer: UnsafeMutablePointer<UnsafeMutablePoi
     return result
 }
 
-extension IPAddress {
+extension IPAddress.IPv4 {
     init(_ address: in_addr) {
         var address = address
         var addressBytes = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
         inet_ntop(AF_INET, &address, &addressBytes, socklen_t(INET_ADDRSTRLEN))
-        self = .IPv4(String(cString: addressBytes))
+        self = .init(address: String(cString: addressBytes))
     }
+}
 
+extension IPAddress.IPv6 {
     init(_ address: ares_in6_addr) {
         var address = address
         var addressBytes = [CChar](repeating: 0, count: Int(INET6_ADDRSTRLEN))
         inet_ntop(AF_INET6, &address, &addressBytes, socklen_t(INET6_ADDRSTRLEN))
-        self = .IPv6(String(cString: addressBytes))
+        self = .init(address: String(cString: addressBytes))
     }
 }
 
 extension ARecord {
     init(_ addrttl: ares_addrttl) {
-        self.address = IPAddress(addrttl.ipaddr)
+        self.address = IPAddress.IPv4(addrttl.ipaddr)
         self.ttl = addrttl.ttl
     }
 }
 
 extension AAAARecord {
     init(_ addrttl: ares_addr6ttl) {
-        self.address = IPAddress(addrttl.ip6addr)
+        self.address = IPAddress.IPv6(addrttl.ip6addr)
         self.ttl = addrttl.ttl
     }
 }

@@ -12,7 +12,7 @@ var caresExclude = [
 ]
 
 do {
-    if !(try FileManager.default.contentsOfDirectory(atPath: "./Sources/CAsyncDNSResolver/c-ares/CMakeFiles").isEmpty) {
+    if try !(FileManager.default.contentsOfDirectory(atPath: "./Sources/CAsyncDNSResolver/c-ares/CMakeFiles").isEmpty) {
         caresExclude.append("./c-ares/CMakeFiles/")
     }
 } catch {
@@ -21,14 +21,10 @@ do {
 
 let package = Package(
     name: "swift-async-dns-resolver",
-    platforms: [
-        .macOS("13.0"),
-    ],
     products: [
         .library(name: "AsyncDNSResolver", targets: ["AsyncDNSResolver"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-nio", .upToNextMajor(from: "2.53.0")),
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0"),
     ],
     targets: [
@@ -48,7 +44,6 @@ let package = Package(
             name: "AsyncDNSResolver",
             dependencies: [
                 "CAsyncDNSResolver",
-                .product(name: "NIOCore", package: "swift-nio"),
             ]
         ),
 

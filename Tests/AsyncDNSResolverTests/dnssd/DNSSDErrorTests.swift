@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2020 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2024 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -12,27 +12,26 @@
 //
 //===----------------------------------------------------------------------===//
 
+#if canImport(Darwin)
 @testable import AsyncDNSResolver
-import CAsyncDNSResolver
+import dnssd
 import XCTest
 
-final class AresErrorTests: XCTestCase {
+final class DNSSDErrorTests: XCTestCase {
     func test_initFromCode() {
-        let inputs: [Int32: AsyncDNSResolver.Error.Code] = [
-            ARES_EFORMERR: .badQuery,
-            ARES_EBADQUERY: .badQuery,
-            ARES_EBADNAME: .badQuery,
-            ARES_EBADFAMILY: .badQuery,
-            ARES_EBADFLAGS: .badQuery,
-            ARES_EBADRESP: .badResponse,
-            ARES_ECONNREFUSED: .connectionRefused,
-            ARES_ETIMEOUT: .timeout,
+        let inputs: [Int: AsyncDNSResolver.Error.Code] = [
+            kDNSServiceErr_BadFlags: .badQuery,
+            kDNSServiceErr_BadParam: .badQuery,
+            kDNSServiceErr_Invalid: .badQuery,
+            kDNSServiceErr_Refused: .connectionRefused,
+            kDNSServiceErr_Timeout: .timeout,
         ]
 
         for (code, expected) in inputs {
-            let error = AsyncDNSResolver.Error(cAresCode: code, "some error")
+            let error = AsyncDNSResolver.Error(dnssdCode: Int32(code), "some error")
             XCTAssertEqual(error.code, expected)
             XCTAssertEqual(error.message, "some error", "Expected description to be \"some error\", got \(error.message)")
         }
     }
 }
+#endif

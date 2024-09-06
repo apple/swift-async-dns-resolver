@@ -3,7 +3,7 @@
 ##
 ## This source file is part of the SwiftAsyncDNSResolver open source project
 ##
-## Copyright (c) 2020-2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
+## Copyright (c) 2020-2024 Apple Inc. and the SwiftAsyncDNSResolver project authors
 ## Licensed under Apache License v2.0
 ##
 ## See LICENSE.txt for license information
@@ -18,8 +18,14 @@ here="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 function replace_acceptable_years() {
     # this needs to replace all acceptable forms with 'YEARS'
-    sed -e 's/202[012]-202[123]/YEARS/' -e 's/202[0123]/YEARS/'
+    sed -e 's/202[0123]-202[1234]/YEARS/' -e 's/202[01234]/YEARS/'
 }
+
+if ! hash swiftformat &> /dev/null
+then
+  printf "\033[0;31mPlease install swiftformat (https://github.com/nicklockwood/SwiftFormat) and run again.\033[0m\n"
+  exit 1
+fi
 
 printf "=> Checking format... "
 FIRST_OUT="$(git status --porcelain)"

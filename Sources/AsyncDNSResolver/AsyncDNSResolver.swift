@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2020-2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2020-2024 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -15,6 +15,7 @@
 // MARK: - Async DNS resolver API
 
 /// `AsyncDNSResolver` provides API for running asynchronous DNS queries.
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 public struct AsyncDNSResolver {
     let underlying: DNSResolver
 
@@ -26,7 +27,7 @@ public struct AsyncDNSResolver {
         #if canImport(Darwin)
         self.init(DNSSDDNSResolver())
         #else
-        self.init(try CAresDNSResolver())
+        try self.init(CAresDNSResolver())
         #endif
     }
 
@@ -44,7 +45,7 @@ public struct AsyncDNSResolver {
     /// - Parameters:
     ///   - options: Options to create ``CAresDNSResolver`` with.
     public init(options: CAresDNSResolver.Options) throws {
-        self.init(try CAresDNSResolver(options: options))
+        try self.init(CAresDNSResolver(options: options))
     }
 
     /// See ``DNSResolver/queryA(name:)``.
@@ -63,12 +64,12 @@ public struct AsyncDNSResolver {
     }
 
     /// See ``DNSResolver/queryCNAME(name:)``.
-    public func queryCNAME(name: String) async throws -> String {
+    public func queryCNAME(name: String) async throws -> String? {
         try await self.underlying.queryCNAME(name: name)
     }
 
     /// See ``DNSResolver/querySOA(name:)``.
-    public func querySOA(name: String) async throws -> SOARecord {
+    public func querySOA(name: String) async throws -> SOARecord? {
         try await self.underlying.querySOA(name: name)
     }
 
@@ -94,13 +95,14 @@ public struct AsyncDNSResolver {
 }
 
 /// API for running DNS queries.
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 public protocol DNSResolver {
     /// Lookup A records associated with `name`.
     ///
     /// - Parameters:
     ///   - name: The name to resolve.
     ///
-    /// - Returns: ``ARecord``s for the given name.
+    /// - Returns: ``ARecord``s for the given name, empty if no records were found.
     func queryA(name: String) async throws -> [ARecord]
 
     /// Lookup AAAA records associated with `name`.
@@ -108,7 +110,7 @@ public protocol DNSResolver {
     /// - Parameters:
     ///   - name: The name to resolve.
     ///
-    /// - Returns: ``AAAARecord``s for the given name.
+    /// - Returns: ``AAAARecord``s for the given name, empty if no records were found.
     func queryAAAA(name: String) async throws -> [AAAARecord]
 
     /// Lookup NS record associated with `name`.
@@ -124,16 +126,16 @@ public protocol DNSResolver {
     /// - Parameters:
     ///   - name: The name to resolve.
     ///
-    /// - Returns: CNAME for the given name.
-    func queryCNAME(name: String) async throws -> String
+    /// - Returns: CNAME for the given name, `nil` if no record was found.
+    func queryCNAME(name: String) async throws -> String?
 
     /// Lookup SOA record associated with `name`.
     ///
     /// - Parameters:
     ///   - name: The name to resolve.
     ///
-    /// - Returns: ``SOARecord`` for the given name.
-    func querySOA(name: String) async throws -> SOARecord
+    /// - Returns: ``SOARecord`` for the given name, `nil` if no record was found.
+    func querySOA(name: String) async throws -> SOARecord?
 
     /// Lookup PTR record associated with `name`.
     ///
@@ -148,7 +150,7 @@ public protocol DNSResolver {
     /// - Parameters:
     ///   - name: The name to resolve.
     ///
-    /// - Returns: ``MXRecord``s for the given name.
+    /// - Returns: ``MXRecord``s for the given name, empty if no records were found.
     func queryMX(name: String) async throws -> [MXRecord]
 
     /// Lookup TXT records associated with `name`.
@@ -156,7 +158,7 @@ public protocol DNSResolver {
     /// - Parameters:
     ///   - name: The name to resolve.
     ///
-    /// - Returns: ``TXTRecord``s for the given name.
+    /// - Returns: ``TXTRecord``s for the given name, empty if no records were found.
     func queryTXT(name: String) async throws -> [TXTRecord]
 
     /// Lookup SRV records associated with `name`.
@@ -164,7 +166,7 @@ public protocol DNSResolver {
     /// - Parameters:
     ///   - name: The name to resolve.
     ///
-    /// - Returns: ``SRVRecord``s for the given name.
+    /// - Returns: ``SRVRecord``s for the given name, empty if no records were found.
     func querySRV(name: String) async throws -> [SRVRecord]
 }
 
@@ -183,47 +185,79 @@ enum QueryType {
 
 // MARK: - Query reply types
 
-public enum IPAddress: CustomStringConvertible {
-    case IPv4(String)
-    case IPv6(String)
+public enum IPAddress: Sendable, Hashable, CustomStringConvertible {
+    case ipv4(IPv4)
+    case ipv6(IPv6)
 
     public var description: String {
         switch self {
-        case .IPv4(let address):
-            return address
-        case .IPv6(let address):
-            return address
+        case .ipv4(let address):
+            return String(describing: address)
+        case .ipv6(let address):
+            return String(describing: address)
+        }
+    }
+
+    public struct IPv4: Sendable, Hashable, CustomStringConvertible {
+        public var address: String
+        public var description: String { self.address }
+
+        public init(address: String) {
+            self.address = address
+        }
+    }
+
+    public struct IPv6: Sendable, Hashable, CustomStringConvertible {
+        public var address: String
+        public var description: String { self.address }
+
+        public init(address: String) {
+            self.address = address
         }
     }
 }
 
-public struct ARecord: CustomStringConvertible {
-    public let address: IPAddress
+public struct ARecord: Sendable, Hashable, CustomStringConvertible {
+    public let address: IPAddress.IPv4
     public let ttl: Int32?
 
     public var description: String {
         "\(Self.self)(address=\(self.address), ttl=\(self.ttl.map { "\($0)" } ?? ""))"
     }
+
+    public init(address: IPAddress.IPv4, ttl: Int32?) {
+        self.address = address
+        self.ttl = ttl
+    }
 }
 
-public struct AAAARecord: CustomStringConvertible {
-    public let address: IPAddress
+public struct AAAARecord: Sendable, Hashable, CustomStringConvertible {
+    public let address: IPAddress.IPv6
     public let ttl: Int32?
 
     public var description: String {
         "\(Self.self)(address=\(self.address), ttl=\(self.ttl.map { "\($0)" } ?? ""))"
     }
+
+    public init(address: IPAddress.IPv6, ttl: Int32?) {
+        self.address = address
+        self.ttl = ttl
+    }
 }
 
-public struct NSRecord: CustomStringConvertible {
+public struct NSRecord: Sendable, Hashable, CustomStringConvertible {
     public let nameservers: [String]
 
     public var description: String {
         "\(Self.self)(nameservers=\(self.nameservers))"
     }
+
+    public init(nameservers: [String]) {
+        self.nameservers = nameservers
+    }
 }
 
-public struct SOARecord: CustomStringConvertible {
+public struct SOARecord: Sendable, Hashable, CustomStringConvertible {
     public let mname: String?
     public let rname: String?
     public let serial: UInt32
@@ -237,32 +271,45 @@ public struct SOARecord: CustomStringConvertible {
     }
 }
 
-public struct PTRRecord: CustomStringConvertible {
+public struct PTRRecord: Sendable, Hashable, CustomStringConvertible {
     public let names: [String]
 
     public var description: String {
         "\(Self.self)(names=\(self.names))"
     }
+
+    public init(names: [String]) {
+        self.names = names
+    }
 }
 
-public struct MXRecord: CustomStringConvertible {
+public struct MXRecord: Sendable, Hashable, CustomStringConvertible {
     public let host: String
     public let priority: UInt16
 
     public var description: String {
         "\(Self.self)(host=\(self.host), priority=\(self.priority))"
     }
+
+    public init(host: String, priority: UInt16) {
+        self.host = host
+        self.priority = priority
+    }
 }
 
-public struct TXTRecord {
+public struct TXTRecord: Sendable, Hashable {
     public let txt: String
 
     public var description: String {
         "\(Self.self)(\(self.txt))"
     }
+
+    public init(txt: String) {
+        self.txt = txt
+    }
 }
 
-public struct SRVRecord: CustomStringConvertible {
+public struct SRVRecord: Sendable, Hashable, CustomStringConvertible {
     public let host: String
     public let port: UInt16
     public let weight: UInt16
@@ -271,9 +318,16 @@ public struct SRVRecord: CustomStringConvertible {
     public var description: String {
         "\(Self.self)(host=\(self.host), port=\(self.port), weight=\(self.weight), priority=\(self.priority))"
     }
+
+    public init(host: String, port: UInt16, weight: UInt16, priority: UInt16) {
+        self.host = host
+        self.port = port
+        self.weight = weight
+        self.priority = priority
+    }
 }
 
-public struct NAPTRRecord: CustomStringConvertible {
+public struct NAPTRRecord: Sendable, Hashable, CustomStringConvertible {
     public let flags: String?
     public let service: String?
     public let regExp: String?
@@ -283,5 +337,14 @@ public struct NAPTRRecord: CustomStringConvertible {
 
     public var description: String {
         "\(Self.self)(flags=\(self.flags ?? ""), service=\(self.service ?? ""), regExp=\(self.regExp ?? ""), replacement=\(self.replacement), order=\(self.order), preference=\(self.preference))"
+    }
+
+    public init(flags: String?, service: String?, regExp: String?, replacement: String, order: UInt16, preference: UInt16) {
+        self.flags = flags
+        self.service = service
+        self.regExp = regExp
+        self.replacement = replacement
+        self.order = order
+        self.preference = preference
     }
 }

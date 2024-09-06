@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftAsyncDNSResolver open source project
 //
-// Copyright (c) 2020-2023 Apple Inc. and the SwiftAsyncDNSResolver project authors
+// Copyright (c) 2020-2024 Apple Inc. and the SwiftAsyncDNSResolver project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -13,22 +13,23 @@
 //===----------------------------------------------------------------------===//
 
 import CAsyncDNSResolver
+import Foundation
 
 // MARK: - ares_channel
 
-actor AresChannel {
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
+class AresChannel {
     let pointer: UnsafeMutablePointer<ares_channel?>
+    let lock = NSLock()
 
     private var underlying: ares_channel? {
         self.pointer.pointee
     }
 
     deinit {
-        Task { [pointer] in
-            ares_destroy(pointer.pointee)
-            pointer.deallocate()
-            ares_library_cleanup()
-        }
+        ares_destroy(pointer.pointee)
+        pointer.deallocate()
+        ares_library_cleanup()
     }
 
     init(options: AresOptions) throws {
@@ -52,6 +53,9 @@ actor AresChannel {
     }
 
     func withChannel(_ body: (ares_channel) -> Void) {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+
         guard let underlying = self.underlying else {
             fatalError("ares_channel not initialized")
         }
@@ -59,9 +63,10 @@ actor AresChannel {
     }
 }
 
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 private func checkAresResult(body: () -> Int32) throws {
     let result = body()
     guard result == ARES_SUCCESS else {
-        throw AsyncDNSResolver.Error(code: result, "failed to initialize channel")
+        throw AsyncDNSResolver.Error(cAresCode: result, "failed to initialize channel")
     }
 }
