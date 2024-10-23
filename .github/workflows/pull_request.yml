@@ -12,8 +12,6 @@ jobs:
       license_header_check_project_name: "SwiftAsyncDNSResolver"
       yamllint_check_enabled: false
       api_breakage_check_enabled: false
-      license_header_check_enabled: true
-      format_check_enabled: true
 
   unit-tests:
     name: Unit tests
