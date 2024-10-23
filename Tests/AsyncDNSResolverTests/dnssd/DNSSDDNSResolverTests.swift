@@ -12,8 +12,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-@testable import AsyncDNSResolver
 import XCTest
+
+@testable import AsyncDNSResolver
 
 #if canImport(Darwin)
 final class DNSSDDNSResolverTests: XCTestCase {
@@ -29,7 +30,7 @@ final class DNSSDDNSResolverTests: XCTestCase {
 
     override func tearDown() {
         super.tearDown()
-        self.resolver = nil // FIXME: for tsan
+        self.resolver = nil  // FIXME: for tsan
     }
 
     func test_queryA() async throws {
@@ -107,7 +108,10 @@ final class DNSSDDNSResolverTests: XCTestCase {
     func test_parseA() throws {
         let addrBytes: [UInt8] = [38, 32, 1, 73]
         try addrBytes.withUnsafeBufferPointer {
-            let record = try DNSSD.AQueryReplyHandler.instance.parseRecord(data: $0.baseAddress, length: UInt16($0.count))
+            let record = try DNSSD.AQueryReplyHandler.instance.parseRecord(
+                data: $0.baseAddress,
+                length: UInt16($0.count)
+            )
             XCTAssertEqual(record, ARecord(address: .init(address: "38.32.1.73"), ttl: nil))
         }
     }
@@ -117,7 +121,8 @@ final class DNSSDDNSResolverTests: XCTestCase {
         try addrBytes.withUnsafeBufferPointer {
             XCTAssertThrowsError(
                 try DNSSD.AQueryReplyHandler.instance.parseRecord(
-                    data: $0.baseAddress, length: UInt16($0.count)
+                    data: $0.baseAddress,
+                    length: UInt16($0.count)
                 )
             )
         }
@@ -128,7 +133,8 @@ final class DNSSDDNSResolverTests: XCTestCase {
         try addrBytes.withUnsafeBufferPointer {
             XCTAssertThrowsError(
                 try DNSSD.AAAAQueryReplyHandler.instance.parseRecord(
-                    data: $0.baseAddress, length: UInt16($0.count)
+                    data: $0.baseAddress,
+                    length: UInt16($0.count)
                 )
             )
         }
@@ -140,7 +146,7 @@ final class DNSSDDNSResolverTests: XCTestCase {
             _ query: @escaping (_ index: Int) async throws -> Void
         ) async throws {
             try await withThrowingTaskGroup(of: Void.self) { group in
-                for i in 1 ... times {
+                for i in 1...times {
                     group.addTask {
                         try await query(i)
                     }

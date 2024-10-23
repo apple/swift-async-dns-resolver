@@ -12,8 +12,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-@testable import AsyncDNSResolver
 import XCTest
+
+@testable import AsyncDNSResolver
 
 #if canImport(Darwin)
 final class DNSDArraySliceTests: XCTestCase {

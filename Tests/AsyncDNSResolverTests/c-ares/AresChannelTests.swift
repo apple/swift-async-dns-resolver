@@ -12,8 +12,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-@testable import AsyncDNSResolver
 import XCTest
+
+@testable import AsyncDNSResolver
 
 final class AresChannelTests: XCTestCase {
     func test_init() async throws {

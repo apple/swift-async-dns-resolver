@@ -30,7 +30,11 @@ final class DNSSDErrorTests: XCTestCase {
         for (code, expected) in inputs {
             let error = AsyncDNSResolver.Error(dnssdCode: Int32(code), "some error")
             XCTAssertEqual(error.code, expected)
-            XCTAssertEqual(error.message, "some error", "Expected description to be \"some error\", got \(error.message)")
+            XCTAssertEqual(
+                error.message,
+                "some error",
+                "Expected description to be \"some error\", got \(error.message)"
+            )
         }
     }
 }

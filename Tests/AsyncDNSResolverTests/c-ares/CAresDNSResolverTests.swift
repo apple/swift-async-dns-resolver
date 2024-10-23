@@ -12,8 +12,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-@testable import AsyncDNSResolver
 import XCTest
+
+@testable import AsyncDNSResolver
 
 final class CAresDNSResolverTests: XCTestCase {
     var resolver: CAresDNSResolver!
@@ -33,7 +34,7 @@ final class CAresDNSResolverTests: XCTestCase {
 
     override func tearDown() {
         super.tearDown()
-        self.resolver = nil // FIXME: for tsan
+        self.resolver = nil  // FIXME: for tsan
     }
 
     func test_queryA() async throws {
@@ -126,7 +127,7 @@ final class CAresDNSResolverTests: XCTestCase {
             _ query: @escaping (_ index: Int) async throws -> Void
         ) async throws {
             try await withThrowingTaskGroup(of: Void.self) { group in
-                for i in 1 ... times {
+                for i in 1...times {
                     group.addTask {
                         try await query(i)
                     }

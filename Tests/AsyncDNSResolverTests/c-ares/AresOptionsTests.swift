@@ -12,9 +12,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-@testable import AsyncDNSResolver
 import CAsyncDNSResolver
 import XCTest
+
+@testable import AsyncDNSResolver
 
 final class AresOptionsTests: XCTestCase {
     private typealias Options = CAresDNSResolver.Options
@@ -67,10 +68,18 @@ final class AresOptionsTests: XCTestCase {
         self.assertKeyPathValue(options: aresOptions, keyPath: \.tcp_port, expected: options.tcpPort)
         self.ensureOptionMaskSet(aresOptions, .TCP_PORT)
 
-        self.assertKeyPathValue(options: aresOptions, keyPath: \.socket_send_buffer_size, expected: options.socketSendBufferSize!)
+        self.assertKeyPathValue(
+            options: aresOptions,
+            keyPath: \.socket_send_buffer_size,
+            expected: options.socketSendBufferSize!
+        )
         self.ensureOptionMaskSet(aresOptions, .SOCK_SNDBUF)
 
-        self.assertKeyPathValue(options: aresOptions, keyPath: \.socket_receive_buffer_size, expected: options.socketReceiveBufferSize!)
+        self.assertKeyPathValue(
+            options: aresOptions,
+            keyPath: \.socket_receive_buffer_size,
+            expected: options.socketReceiveBufferSize!
+        )
         self.ensureOptionMaskSet(aresOptions, .SOCK_RCVBUF)
 
         self.assertKeyPathValue(options: aresOptions, keyPath: \.ednspsz, expected: options.ednsPacketSize!)
@@ -90,10 +99,18 @@ final class AresOptionsTests: XCTestCase {
         self.ensureOptionMaskSet(aresOptions, .DOMAINS)
 
         XCTAssertNotNil(aresOptions.servers)
-        XCTAssertEqual(aresOptions.servers, options.servers, "Expected servers to be \(options.servers!), got \(aresOptions.servers!)")
+        XCTAssertEqual(
+            aresOptions.servers,
+            options.servers,
+            "Expected servers to be \(options.servers!), got \(aresOptions.servers!)"
+        )
 
         XCTAssertNotNil(aresOptions.sortlist)
-        XCTAssertEqual(aresOptions.sortlist, options.sortlist, "Expected sortlist to be \(options.sortlist!), got \(aresOptions.sortlist!)")
+        XCTAssertEqual(
+            aresOptions.sortlist,
+            options.sortlist,
+            "Expected sortlist to be \(options.sortlist!), got \(aresOptions.sortlist!)"
+        )
     }
 
     func test_rotate() {
@@ -138,7 +155,8 @@ final class AresOptionsTests: XCTestCase {
 
     private func assertKeyPathValue<T>(
         options: AresOptions,
-        keyPath: KeyPath<ares_options, T>, expected: T
+        keyPath: KeyPath<ares_options, T>,
+        expected: T
     ) where T: Equatable {
         let actual = options.underlying[keyPath: keyPath]
         XCTAssertEqual(actual, expected, "Expected \(keyPath) to be \(expected), got \(actual)")
@@ -151,7 +169,7 @@ final class AresOptionsTests: XCTestCase {
     ) {
         let actualPointer = options.underlying[keyPath: keyPath]
         XCTAssertNotNil(actualPointer, "Expected \(keyPath) to be non nil")
-        let actual = String(cString: actualPointer!) // !-safe since we check for nil
+        let actual = String(cString: actualPointer!)  // !-safe since we check for nil
         XCTAssertEqual(actual, expected, "Expected \(keyPath) to be \(expected), got \(actual)")
     }
 

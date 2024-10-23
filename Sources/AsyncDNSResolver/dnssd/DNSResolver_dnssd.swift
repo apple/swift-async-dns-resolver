@@ -182,7 +182,10 @@ extension DNSSD {
     class QueryReplyHandler {
         private let _handleRecord: (DNSServiceErrorType, UnsafeRawPointer?, UInt16) -> Void
 
-        init<Handler: DNSSDQueryReplyHandler>(handler: Handler, _ continuation: AsyncThrowingStream<Handler.Record, Error>.Continuation) {
+        init<Handler: DNSSDQueryReplyHandler>(
+            handler: Handler,
+            _ continuation: AsyncThrowingStream<Handler.Record, Error>.Continuation
+        ) {
             self._handleRecord = { errorCode, _data, _length in
                 let data: UnsafeRawPointer?
                 let length: UInt16
@@ -338,12 +341,13 @@ extension DNSSD {
             var buffer = Array(bufferPtr)[...]
 
             guard let mname = self.readName(&buffer),
-                  let rname = self.readName(&buffer),
-                  let serial = buffer.readInteger(as: UInt32.self),
-                  let refresh = buffer.readInteger(as: UInt32.self),
-                  let retry = buffer.readInteger(as: UInt32.self),
-                  let expire = buffer.readInteger(as: UInt32.self),
-                  let ttl = buffer.readInteger(as: UInt32.self) else {
+                let rname = self.readName(&buffer),
+                let serial = buffer.readInteger(as: UInt32.self),
+                let refresh = buffer.readInteger(as: UInt32.self),
+                let retry = buffer.readInteger(as: UInt32.self),
+                let expire = buffer.readInteger(as: UInt32.self),
+                let ttl = buffer.readInteger(as: UInt32.self)
+            else {
                 throw AsyncDNSResolver.Error(code: .badResponse)
             }
 
@@ -398,7 +402,8 @@ extension DNSSD {
             var buffer = Array(bufferPtr)[...]
 
             guard let priority = buffer.readInteger(as: UInt16.self),
-                  let host = self.readName(&buffer) else {
+                let host = self.readName(&buffer)
+            else {
                 throw AsyncDNSResolver.Error(code: .badResponse)
             }
 
@@ -441,9 +446,10 @@ extension DNSSD {
             var buffer = Array(bufferPtr)[...]
 
             guard let priority = buffer.readInteger(as: UInt16.self),
-                  let weight = buffer.readInteger(as: UInt16.self),
-                  let port = buffer.readInteger(as: UInt16.self),
-                  let host = self.readName(&buffer) else {
+                let weight = buffer.readInteger(as: UInt16.self),
+                let port = buffer.readInteger(as: UInt16.self),
+                let host = self.readName(&buffer)
+            else {
                 throw AsyncDNSResolver.Error(code: .badResponse)
             }
 
@@ -465,8 +471,9 @@ extension DNSSDQueryReplyHandler {
     func readName(_ buffer: inout ArraySlice<UInt8>) -> String? {
         var parts: [String] = []
         while let length = buffer.readInteger(as: UInt8.self),
-              length > 0,
-              let part = buffer.readString(length: Int(length)) {
+            length > 0,
+            let part = buffer.readString(length: Int(length))
+        {
             parts.append(part)
         }
 

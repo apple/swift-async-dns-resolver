@@ -339,7 +339,14 @@ public struct NAPTRRecord: Sendable, Hashable, CustomStringConvertible {
         "\(Self.self)(flags=\(self.flags ?? ""), service=\(self.service ?? ""), regExp=\(self.regExp ?? ""), replacement=\(self.replacement), order=\(self.order), preference=\(self.preference))"
     }
 
-    public init(flags: String?, service: String?, regExp: String?, replacement: String, order: UInt16, preference: UInt16) {
+    public init(
+        flags: String?,
+        service: String?,
+        regExp: String?,
+        replacement: String,
+        order: UInt16,
+        preference: UInt16
+    ) {
         self.flags = flags
         self.service = service
         self.regExp = regExp
