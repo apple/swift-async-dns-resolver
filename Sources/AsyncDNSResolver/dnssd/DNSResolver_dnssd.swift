@@ -232,7 +232,7 @@ protocol DNSSDQueryReplyHandler {
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension DNSSD {
-    // Reference: https://github.com/orlandos-nl/DNSClient/blob/master/Sources/DNSClient/Messages/Message.swift
+    // Reference: https://github.com/orlandos-nl/DNSClient/blob/master/Sources/DNSClient/Messages/Message.swift  // // ignore-unacceptable-language
 
     struct AQueryReplyHandler: DNSSDQueryReplyHandler {
         static let instance = AQueryReplyHandler()

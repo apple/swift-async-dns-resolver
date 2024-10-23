@@ -198,13 +198,12 @@ final class CAresDNSResolverTests: XCTestCase {
             }
         }
 
-        /* expected: "no data" error
-         try await run { i in
-             let reply = try await self.resolver.queryNAPTR(name: "apple.com")
-             if self.verbose {
-                 print("[NAPTR] run #\(i) result: \(reply)")
-             }
-         }
-          */
+        // expected: "no data" error
+        // try await run { i in
+        //     let reply = try await self.resolver.queryNAPTR(name: "apple.com")
+        //     if self.verbose {
+        //         print("[NAPTR] run #\(i) result: \(reply)")
+        //     }
+        // }
     }
 }

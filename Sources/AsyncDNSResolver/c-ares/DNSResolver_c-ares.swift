@@ -193,9 +193,9 @@ class Ares {
 extension Ares {
     // TODO: implement this more nicely using NIO EventLoop?
     // See:
-    // https://github.com/dimbleby/c-ares-resolver/blob/master/src/unix/eventloop.rs
-    // https://github.com/dimbleby/rust-c-ares/blob/master/src/channel.rs
-    // https://github.com/dimbleby/rust-c-ares/blob/master/examples/event-loop.rs
+    // https://github.com/dimbleby/c-ares-resolver/blob/master/src/unix/eventloop.rs  // ignore-unacceptable-language
+    // https://github.com/dimbleby/rust-c-ares/blob/master/src/channel.rs  // ignore-unacceptable-language
+    // https://github.com/dimbleby/rust-c-ares/blob/master/examples/event-loop.rs  // ignore-unacceptable-language
     class QueryProcessor {
         static let defaultPollInterval: UInt64 = 10 * 1_000_000 // 10ms
 

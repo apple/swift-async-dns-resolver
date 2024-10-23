@@ -356,7 +356,9 @@ extension String {
 
 extension Sequence {
     fileprivate func deallocate<T>() where Element == UnsafeMutablePointer<T>? {
-        self.forEach { $0?.deallocate() }
+        for entry in self {
+            entry?.deallocate()
+        }
     }
 }
 
