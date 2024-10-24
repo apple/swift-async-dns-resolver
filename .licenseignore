@@ -11,3 +11,4 @@ docker/*
 .gitmodules
 .editorconfig
 Sources/CAsyncDNSResolver/c-ares
+.yamllint.yml
