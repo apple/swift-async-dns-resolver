@@ -122,7 +122,9 @@ extension QueryType {
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 class Ares {
-    typealias QueryCallback = @convention(c) (UnsafeMutableRawPointer?, CInt, CInt, UnsafeMutablePointer<CUnsignedChar>?, CInt) -> Void
+    typealias QueryCallback = @convention(c) (
+        UnsafeMutableRawPointer?, CInt, CInt, UnsafeMutablePointer<CUnsignedChar>?, CInt
+    ) -> Void
 
     let options: AresOptions
     let channel: AresChannel
@@ -193,11 +195,11 @@ class Ares {
 extension Ares {
     // TODO: implement this more nicely using NIO EventLoop?
     // See:
-    // https://github.com/dimbleby/c-ares-resolver/blob/master/src/unix/eventloop.rs
-    // https://github.com/dimbleby/rust-c-ares/blob/master/src/channel.rs
-    // https://github.com/dimbleby/rust-c-ares/blob/master/examples/event-loop.rs
+    // https://github.com/dimbleby/c-ares-resolver/blob/master/src/unix/eventloop.rs  // ignore-unacceptable-language
+    // https://github.com/dimbleby/rust-c-ares/blob/master/src/channel.rs  // ignore-unacceptable-language
+    // https://github.com/dimbleby/rust-c-ares/blob/master/examples/event-loop.rs  // ignore-unacceptable-language
     class QueryProcessor {
-        static let defaultPollInterval: UInt64 = 10 * 1_000_000 // 10ms
+        static let defaultPollInterval: UInt64 = 10 * 1_000_000  // 10ms
 
         private let channel: AresChannel
         private let pollIntervalNanos: UInt64
@@ -449,7 +451,14 @@ extension Ares {
             let hostentPtrPtr = UnsafeMutablePointer<UnsafeMutablePointer<hostent>?>.allocate(capacity: 1)
             defer { hostentPtrPtr.deallocate() }
 
-            let parseStatus = ares_parse_ptr_reply(buffer, length, dummyAddrPointer, INET_ADDRSTRLEN, AF_INET, hostentPtrPtr)
+            let parseStatus = ares_parse_ptr_reply(
+                buffer,
+                length,
+                dummyAddrPointer,
+                INET_ADDRSTRLEN,
+                AF_INET,
+                hostentPtrPtr
+            )
 
             switch parseStatus {
             case ARES_SUCCESS:

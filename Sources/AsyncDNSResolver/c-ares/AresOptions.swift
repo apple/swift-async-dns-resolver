@@ -356,7 +356,9 @@ extension String {
 
 extension Sequence {
     fileprivate func deallocate<T>() where Element == UnsafeMutablePointer<T>? {
-        self.forEach { $0?.deallocate() }
+        for entry in self {
+            entry?.deallocate()
+        }
     }
 }
 
@@ -365,7 +367,7 @@ struct AresOptionMasks: OptionSet {
     let rawValue: CInt
 
     static let FLAGS = AresOptionMasks(rawValue: ARES_OPT_FLAGS)
-    static let TIMEOUT = AresOptionMasks(rawValue: ARES_OPT_TIMEOUT) // Deprecated by TIMEOUTMS
+    static let TIMEOUT = AresOptionMasks(rawValue: ARES_OPT_TIMEOUT)  // Deprecated by TIMEOUTMS
     static let TRIES = AresOptionMasks(rawValue: ARES_OPT_TRIES)
     static let NDOTS = AresOptionMasks(rawValue: ARES_OPT_NDOTS)
     static let UDP_PORT = AresOptionMasks(rawValue: ARES_OPT_UDP_PORT)

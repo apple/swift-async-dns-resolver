@@ -1,0 +1,13 @@
+.gitignore
+.licenseignore
+.swiftformatignore
+.spi.yml
+.swift-format
+.github/
+**.md
+**.txt
+**Package.swift
+docker/*
+.gitmodules
+.editorconfig
+Sources/CAsyncDNSResolver/c-ares

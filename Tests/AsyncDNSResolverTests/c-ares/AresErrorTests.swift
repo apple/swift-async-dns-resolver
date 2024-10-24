@@ -12,9 +12,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-@testable import AsyncDNSResolver
 import CAsyncDNSResolver
 import XCTest
+
+@testable import AsyncDNSResolver
 
 final class AresErrorTests: XCTestCase {
     func test_initFromCode() {
@@ -32,7 +33,11 @@ final class AresErrorTests: XCTestCase {
         for (code, expected) in inputs {
             let error = AsyncDNSResolver.Error(cAresCode: code, "some error")
             XCTAssertEqual(error.code, expected)
-            XCTAssertEqual(error.message, "some error", "Expected description to be \"some error\", got \(error.message)")
+            XCTAssertEqual(
+                error.message,
+                "some error",
+                "Expected description to be \"some error\", got \(error.message)"
+            )
         }
     }
 }

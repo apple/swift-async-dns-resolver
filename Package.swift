@@ -1,7 +1,8 @@
 // swift-tools-version:5.6
 
-import class Foundation.FileManager
 import PackageDescription
+
+import class Foundation.FileManager
 
 var caresExclude = [
     "./c-ares/src/lib/cares.rc",
@@ -22,11 +23,9 @@ do {
 let package = Package(
     name: "swift-async-dns-resolver",
     products: [
-        .library(name: "AsyncDNSResolver", targets: ["AsyncDNSResolver"]),
+        .library(name: "AsyncDNSResolver", targets: ["AsyncDNSResolver"])
     ],
-    dependencies: [
-        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0"),
-    ],
+    dependencies: [],
     targets: [
         .target(
             name: "CAsyncDNSResolver",
@@ -43,7 +42,7 @@ let package = Package(
         .target(
             name: "AsyncDNSResolver",
             dependencies: [
-                "CAsyncDNSResolver",
+                "CAsyncDNSResolver"
             ]
         ),
 
