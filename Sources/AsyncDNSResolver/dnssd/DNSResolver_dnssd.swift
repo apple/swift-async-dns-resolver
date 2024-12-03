@@ -17,7 +17,7 @@ import dnssd
 
 /// ``DNSResolver`` implementation backed by dnssd framework.
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
-public struct DNSSDDNSResolver: DNSResolver {
+public struct DNSSDDNSResolver: DNSResolver, Sendable {
     let dnssd: DNSSD
 
     init() {
@@ -100,7 +100,7 @@ extension QueryType {
 // MARK: - dnssd query wrapper
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
-struct DNSSD {
+struct DNSSD: Sendable {
     // Reference: https://gist.github.com/fikeminkel/a9c4bc4d0348527e8df3690e242038d3
     func query<ReplyHandler: DNSSDQueryReplyHandler>(
         type: QueryType,
@@ -225,7 +225,7 @@ extension DNSSD {
 // MARK: - dnssd query reply handlers
 
 protocol DNSSDQueryReplyHandler {
-    associatedtype Record
+    associatedtype Record: Sendable
     associatedtype Reply
 
     func parseRecord(data: UnsafeRawPointer?, length: UInt16) throws -> Record?

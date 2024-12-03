@@ -18,17 +18,20 @@ import Foundation
 // MARK: - ares_channel
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
-class AresChannel {
-    let pointer: UnsafeMutablePointer<ares_channel?>
-    let lock = NSLock()
+final class AresChannel: @unchecked Sendable {
+    private let locked_pointer: UnsafeMutablePointer<ares_channel?>
+    private let lock = NSLock()
 
-    private var underlying: ares_channel? {
-        self.pointer.pointee
+    // For testing only.
+    var underlying: ares_channel? {
+        self.locked_pointer.pointee
     }
 
     deinit {
-        ares_destroy(pointer.pointee)
-        pointer.deallocate()
+        // Safe to perform without the lock, as in deinit we know that no more
+        // strong references to self exist, so nobody can be holding the lock.
+        ares_destroy(locked_pointer.pointee)
+        locked_pointer.deallocate()
         ares_library_cleanup()
     }
 
@@ -49,7 +52,7 @@ class AresChannel {
             try checkAresResult { ares_set_sortlist(pointer.pointee, sortlist) }
         }
 
-        self.pointer = pointer
+        self.locked_pointer = pointer
     }
 
     func withChannel(_ body: (ares_channel) -> Void) {

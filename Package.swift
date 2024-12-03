@@ -50,3 +50,9 @@ let package = Package(
     ],
     cLanguageStandard: .gnu11
 )
+
+for target in package.targets {
+    var settings = target.swiftSettings ?? []
+    settings.append(.enableExperimentalFeature("StrictConcurrency=complete"))
+    target.swiftSettings = settings
+}

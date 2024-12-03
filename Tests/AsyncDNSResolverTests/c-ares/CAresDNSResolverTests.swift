@@ -124,7 +124,7 @@ final class CAresDNSResolverTests: XCTestCase {
     func test_concurrency() async throws {
         func run(
             times: Int = 100,
-            _ query: @escaping (_ index: Int) async throws -> Void
+            _ query: @Sendable @escaping (_ index: Int) async throws -> Void
         ) async throws {
             try await withThrowingTaskGroup(of: Void.self) { group in
                 for i in 1...times {
@@ -136,65 +136,67 @@ final class CAresDNSResolverTests: XCTestCase {
             }
         }
 
+        let resolver = self.resolver!
+        let verbose = self.verbose
         try await run { i in
-            let reply = try await self.resolver.queryA(name: "apple.com")
-            if self.verbose {
+            let reply = try await resolver.queryA(name: "apple.com")
+            if verbose {
                 print("[A] run #\(i) result: \(reply)")
             }
         }
 
         try await run { i in
-            let reply = try await self.resolver.queryAAAA(name: "apple.com")
-            if self.verbose {
+            let reply = try await resolver.queryAAAA(name: "apple.com")
+            if verbose {
                 print("[AAAA] run #\(i) result: \(reply)")
             }
         }
 
         try await run { i in
-            let reply = try await self.resolver.queryNS(name: "apple.com")
-            if self.verbose {
+            let reply = try await resolver.queryNS(name: "apple.com")
+            if verbose {
                 print("[NS] run #\(i) result: \(reply)")
             }
         }
 
         try await run { i in
-            let reply = try await self.resolver.queryCNAME(name: "www.apple.com")
-            if self.verbose {
+            let reply = try await resolver.queryCNAME(name: "www.apple.com")
+            if verbose {
                 print("[CNAME] run #\(i) result: \(String(describing: reply))")
             }
         }
 
         try await run { i in
-            let reply = try await self.resolver.querySOA(name: "apple.com")
-            if self.verbose {
+            let reply = try await resolver.querySOA(name: "apple.com")
+            if verbose {
                 print("[SOA] run #\(i) result: \(String(describing: reply))")
             }
         }
 
         try await run { i in
-            let reply = try await self.resolver.queryPTR(name: "47.224.172.17.in-addr.arpa")
-            if self.verbose {
+            let reply = try await resolver.queryPTR(name: "47.224.172.17.in-addr.arpa")
+            if verbose {
                 print("[PTR] run #\(i) result: \(reply)")
             }
         }
 
         try await run { i in
-            let reply = try await self.resolver.queryMX(name: "apple.com")
-            if self.verbose {
+            let reply = try await resolver.queryMX(name: "apple.com")
+            if verbose {
                 print("[MX] run #\(i) result: \(reply)")
             }
         }
 
         try await run { i in
-            let reply = try await self.resolver.queryTXT(name: "apple.com")
-            if self.verbose {
+            let reply = try await resolver.queryTXT(name: "apple.com")
+            if verbose {
                 print("[TXT] run #\(i) result: \(reply)")
             }
         }
 
         try await run { i in
-            let reply = try await self.resolver.querySRV(name: "_caldavs._tcp.google.com")
-            if self.verbose {
+            let reply = try await resolver.querySRV(name: "_caldavs._tcp.google.com")
+            if verbose {
                 print("[SRV] run #\(i) result: \(reply)")
             }
         }
