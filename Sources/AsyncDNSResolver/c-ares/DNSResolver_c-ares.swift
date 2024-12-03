@@ -13,10 +13,11 @@
 //===----------------------------------------------------------------------===//
 
 import CAsyncDNSResolver
+import Foundation
 
 /// ``DNSResolver`` implementation backed by c-ares C library.
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
-public class CAresDNSResolver: DNSResolver {
+public final class CAresDNSResolver: DNSResolver, Sendable {
     let options: Options
     let ares: Ares
 
@@ -121,18 +122,15 @@ extension QueryType {
 // MARK: - c-ares query wrapper
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
-class Ares {
+final class Ares: Sendable {
     typealias QueryCallback = @convention(c) (
         UnsafeMutableRawPointer?, CInt, CInt, UnsafeMutablePointer<CUnsignedChar>?, CInt
     ) -> Void
 
-    let options: AresOptions
-    let channel: AresChannel
-
+    private let channel: AresChannel
     private let queryProcessor: QueryProcessor
 
     init(options: AresOptions) throws {
-        self.options = options
         self.channel = try AresChannel(options: options)
 
         // Need to call `ares_process` or `ares_process_fd` for query callbacks to happen
@@ -145,7 +143,8 @@ class Ares {
         name: String,
         replyParser: ReplyParser
     ) async throws -> ReplyParser.Reply {
-        try await withTaskCancellationHandler(
+        let channel = self.channel
+        return try await withTaskCancellationHandler(
             operation: {
                 try await withCheckedThrowingContinuation { continuation in
                     let handler = QueryReplyHandler(parser: replyParser, continuation)
@@ -178,7 +177,7 @@ class Ares {
                 }
             },
             onCancel: {
-                self.channel.withChannel { channel in
+                channel.withChannel { channel in
                     ares_cancel(channel)
                 }
             }
@@ -198,16 +197,18 @@ extension Ares {
     // https://github.com/dimbleby/c-ares-resolver/blob/master/src/unix/eventloop.rs  // ignore-unacceptable-language
     // https://github.com/dimbleby/rust-c-ares/blob/master/src/channel.rs  // ignore-unacceptable-language
     // https://github.com/dimbleby/rust-c-ares/blob/master/examples/event-loop.rs  // ignore-unacceptable-language
-    class QueryProcessor {
+    final class QueryProcessor: @unchecked Sendable {
         static let defaultPollInterval: UInt64 = 10 * 1_000_000  // 10ms
 
         private let channel: AresChannel
         private let pollIntervalNanos: UInt64
 
-        private var pollingTask: Task<Void, Error>?
+        private let lock = NSLock()
+        private var locked_pollingTask: Task<Void, Error>?
 
         deinit {
-            self.pollingTask?.cancel()
+            // No need to lock here as there can exist no more strong references to self.
+            self.locked_pollingTask?.cancel()
         }
 
         init(channel: AresChannel, pollIntervalNanos: UInt64 = QueryProcessor.defaultPollInterval) {
@@ -218,7 +219,7 @@ extension Ares {
         /// Asks c-ares for the set of socket descriptors we are waiting on for the `ares_channel`'s pending queries
         /// then call `ares_process_fd` if any is ready for read and/or write.
         /// c-ares returns up to `ARES_GETSOCK_MAXNUM` socket descriptors only. If more are in use (unlikely) they are not reported back.
-        func poll() async {
+        func poll() {
             var socks = [ares_socket_t](repeating: ares_socket_t(), count: Int(ARES_GETSOCK_MAXNUM))
 
             self.channel.withChannel { channel in
@@ -249,12 +250,14 @@ extension Ares {
         }
 
         private func schedule() {
-            self.pollingTask = Task { [weak self] in
+            self.lock.lock()
+            defer { self.lock.unlock() }
+            self.locked_pollingTask = Task { [weak self] in
                 guard let s = self else {
                     return
                 }
                 try await Task.sleep(nanoseconds: s.pollIntervalNanos)
-                await s.poll()
+                s.poll()
             }
         }
     }
@@ -291,7 +294,7 @@ extension Ares {
 // MARK: - c-ares query reply parsers
 
 protocol AresQueryReplyParser {
-    associatedtype Reply
+    associatedtype Reply: Sendable
 
     func parse(buffer: UnsafeMutablePointer<CUnsignedChar>?, length: CInt) throws -> Reply
 }

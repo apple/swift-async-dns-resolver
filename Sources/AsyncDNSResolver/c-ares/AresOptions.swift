@@ -19,7 +19,7 @@ import CAsyncDNSResolver
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension CAresDNSResolver {
     /// Options for ``CAresDNSResolver``.
-    public struct Options {
+    public struct Options: Sendable {
         public static var `default`: Options {
             .init()
         }
@@ -91,7 +91,7 @@ extension CAresDNSResolver {
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 extension CAresDNSResolver.Options {
-    public struct Flags: OptionSet {
+    public struct Flags: OptionSet, Sendable {
         public let rawValue: Int32
 
         public init(rawValue: Int32) {
