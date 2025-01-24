@@ -29,7 +29,7 @@ final class CAresDNSResolverTests: XCTestCase {
         options.servers = servers
 
         self.resolver = try! CAresDNSResolver(options: options)
-        self.verbose = ProcessInfo.processInfo.environment["VERBOSE_TESTS"] == "true"
+        self.verbose = true // TODO: Undo this before merging!!!
     }
 
     override func tearDown() {
@@ -122,11 +122,19 @@ final class CAresDNSResolverTests: XCTestCase {
     }
 
     func test_concurrency() async throws {
+        let verbose = self.verbose
+
         func run(
             _ name: String,
             times: Int = 100,
             _ query: @Sendable @escaping (_ index: Int) async throws -> Void
         ) async throws {
+            let start = Date.now
+            defer {
+                if verbose {
+                    print("Test of \(name) took \(Int64(start.timeIntervalSinceNow * -1000)) ms.")
+                }
+            }
             do {
                 try await withThrowingTaskGroup(of: Void.self) { group in
                     for i in 1...times {
@@ -137,13 +145,14 @@ final class CAresDNSResolverTests: XCTestCase {
                     for try await _ in group {}
                 }
             } catch {
-                print("Test of \(name) is throwing an error.")
+                if verbose {
+                    print("Test of \(name) is throwing an error.")
+                }
                 throw error
             }
         }
 
         let resolver = self.resolver!
-        let verbose = self.verbose
         try await run("queryA") { i in
             let reply = try await resolver.queryA(name: "apple.com")
             if verbose {
