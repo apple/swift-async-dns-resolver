@@ -29,7 +29,7 @@ final class CAresDNSResolverTests: XCTestCase {
         options.servers = servers
 
         self.resolver = try! CAresDNSResolver(options: options)
-        self.verbose = true // TODO: Undo this before merging!!!
+        self.verbose = ProcessInfo.processInfo.environment["VERBOSE_TESTS"] == "true"
     }
 
     override func tearDown() {
