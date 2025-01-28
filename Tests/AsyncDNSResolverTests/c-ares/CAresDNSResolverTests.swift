@@ -202,7 +202,8 @@ final class CAresDNSResolverTests: XCTestCase {
             }
         }
 
-        try await run("queryTXT", times: 5 /* TXT lookups are very slow in CI and lead to timeouts */) { i in
+        // TXT lookups are very slow in CI and lead to timeouts.
+        try await run("queryTXT", times: 5) { i in
             let reply = try await resolver.queryTXT(name: "apple.com")
             if verbose {
                 print("[TXT] run #\(i) result: \(reply)")
