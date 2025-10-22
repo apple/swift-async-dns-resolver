@@ -23,10 +23,16 @@ final class CAresDNSResolverTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        let servers = ProcessInfo.processInfo.environment["NAME_SERVERS"]?.split(separator: ",").map { String($0) }
-
+        // let servers = ProcessInfo.processInfo.environment["NAME_SERVERS"]?.split(separator: ",").map { String($0) }
+        let servers: [String] = ["8.8.8.8", "1.1.1.1"]  // Try Google and Cloudflare DNS
+        // print("Using name servers: \(servers)")
+        
         var options = CAresDNSResolver.Options()
         options.servers = servers
+        options.flags = [.EDNS]  // Enable EDNS only
+        options.timeoutMillis = 5000  // Increase timeout
+        options.attempts = 5  // More attempts
+        // print("EDNS flag set: \(options.flags.contains(.EDNS)), raw value: \(options.flags.rawValue)")
 
         self.resolver = try! CAresDNSResolver(options: options)
         self.verbose = ProcessInfo.processInfo.environment["VERBOSE_TESTS"] == "true"
@@ -94,7 +100,7 @@ final class CAresDNSResolverTests: XCTestCase {
     }
 
     func test_queryTXT() async throws {
-        let reply = try await self.resolver.queryTXT(name: "apple.com")
+        let reply = try await self.resolver.queryTXT(name: "google.com")
         if self.verbose {
             print("test_queryTXT: \(reply)")
         }

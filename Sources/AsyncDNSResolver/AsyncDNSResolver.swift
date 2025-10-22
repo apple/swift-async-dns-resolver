@@ -170,17 +170,17 @@ public protocol DNSResolver {
     func querySRV(name: String) async throws -> [SRVRecord]
 }
 
-enum QueryType {
-    case A
-    case NS
-    case CNAME
-    case SOA
-    case PTR
-    case MX
-    case TXT
-    case AAAA
-    case SRV
-    case NAPTR
+enum QueryType: Int {
+    case A = 1
+    case NS = 2
+    case CNAME = 5
+    case SOA = 6
+    case PTR = 12
+    case MX = 15
+    case TXT = 16
+    case AAAA = 28
+    case SRV = 33
+    case NAPTR = 35
 }
 
 // MARK: - Query reply types

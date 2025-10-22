@@ -422,10 +422,18 @@ extension DNSSD {
         static let instance = TXTQueryReplyHandler()
 
         func parseRecord(data: UnsafeRawPointer?, length: UInt16) throws -> TXTRecord? {
+            // print("TXT parseRecord: \(data.unsafelyUnwrapped), length: \(length)")
             guard let ptr = data?.assumingMemoryBound(to: UInt8.self) else {
+                // print("...TXT parseRecord couldn't get the data pointer")
                 return nil
             }
-            let txt = String(cString: ptr.advanced(by: 1))
+            let bufferPtr = UnsafeBufferPointer(start: ptr, count: Int(length))
+            var buffer = Array(bufferPtr)[...]
+
+            guard let txt = self.readName(&buffer, separator: "") else {
+                // print("...TXT parseRecord couldn't read the TXT data")
+                throw AsyncDNSResolver.Error(code: .badResponse)
+            }
             return TXTRecord(txt: txt)
         }
 
@@ -468,16 +476,17 @@ extension DNSSD {
 }
 
 extension DNSSDQueryReplyHandler {
-    func readName(_ buffer: inout ArraySlice<UInt8>) -> String? {
+    func readName(_ buffer: inout ArraySlice<UInt8>, separator: String = ".") -> String? {
         var parts: [String] = []
         while let length = buffer.readInteger(as: UInt8.self),
             length > 0,
             let part = buffer.readString(length: Int(length))
         {
+            // print("...TXT readName found part: \(part)")
             parts.append(part)
         }
 
-        return parts.isEmpty ? nil : parts.joined(separator: ".")
+        return parts.isEmpty ? nil : parts.joined(separator: separator)
     }
 
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)

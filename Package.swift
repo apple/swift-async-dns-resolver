@@ -10,6 +10,8 @@ var caresExclude = [
     "./c-ares/src/lib/ares_config.h.cmake",
     "./c-ares/src/lib/Makefile.am",
     "./c-ares/src/lib/Makefile.inc",
+    "./c-ares/src/lib/thirdparty",
+    "./c-ares/src/lib/include/README.md"
 ]
 
 do {
@@ -35,7 +37,8 @@ let package = Package(
             cSettings: [
                 .headerSearchPath("./c-ares/include"),
                 .headerSearchPath("./c-ares/src/lib"),
-                .define("HAVE_CONFIG_H", to: "1"),
+                .headerSearchPath("./c-ares/src/lib/include"),
+		.define("HAVE_CONFIG_H", to: "1"),
             ]
         ),
 

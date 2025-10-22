@@ -21,14 +21,14 @@ extension AsyncDNSResolver.Error {
         self.message = description
         self.source = CAresError(code: Int(cAresCode))
 
-        switch cAresCode {
-        case ARES_EFORMERR, ARES_EBADQUERY, ARES_EBADNAME, ARES_EBADFAMILY, ARES_EBADFLAGS:
+        switch Int32(cAresCode) {
+        case Int32(ARES_EFORMERR.rawValue), Int32(ARES_EBADQUERY.rawValue), Int32(ARES_EBADNAME.rawValue), Int32(ARES_EBADFAMILY.rawValue), Int32(ARES_EBADFLAGS.rawValue):
             self.code = .badQuery
-        case ARES_EBADRESP:
+        case Int32(ARES_EBADRESP.rawValue):
             self.code = .badResponse
-        case ARES_ECONNREFUSED:
+        case Int32(ARES_ECONNREFUSED.rawValue):
             self.code = .connectionRefused
-        case ARES_ETIMEOUT:
+        case Int32(ARES_ETIMEOUT.rawValue):
             self.code = .timeout
         default:
             self.code = .internalError

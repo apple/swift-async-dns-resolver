@@ -20,14 +20,14 @@ import XCTest
 final class AresErrorTests: XCTestCase {
     func test_initFromCode() {
         let inputs: [Int32: AsyncDNSResolver.Error.Code] = [
-            ARES_EFORMERR: .badQuery,
-            ARES_EBADQUERY: .badQuery,
-            ARES_EBADNAME: .badQuery,
-            ARES_EBADFAMILY: .badQuery,
-            ARES_EBADFLAGS: .badQuery,
-            ARES_EBADRESP: .badResponse,
-            ARES_ECONNREFUSED: .connectionRefused,
-            ARES_ETIMEOUT: .timeout,
+            Int32(ARES_EFORMERR.rawValue): .badQuery,
+            Int32(ARES_EBADQUERY.rawValue): .badQuery,
+            Int32(ARES_EBADNAME.rawValue): .badQuery,
+            Int32(ARES_EBADFAMILY.rawValue): .badQuery,
+            Int32(ARES_EBADFLAGS.rawValue): .badQuery,
+            Int32(ARES_EBADRESP.rawValue): .badResponse,
+            Int32(ARES_ECONNREFUSED.rawValue): .connectionRefused,
+            Int32(ARES_ETIMEOUT.rawValue): .timeout,
         ]
 
         for (code, expected) in inputs {

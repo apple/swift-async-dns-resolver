@@ -69,7 +69,7 @@ final class AresChannel: @unchecked Sendable {
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 private func checkAresResult(body: () -> Int32) throws {
     let result = body()
-    guard result == ARES_SUCCESS else {
+    guard result == Int32(ARES_SUCCESS.rawValue) else {
         throw AsyncDNSResolver.Error(cAresCode: result, "failed to initialize channel")
     }
 }

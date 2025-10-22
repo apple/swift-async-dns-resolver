@@ -157,6 +157,7 @@ final class Ares: Sendable {
                     handlerPointer.initializeMemory(as: QueryReplyHandler.self, repeating: handler, count: 1)
 
                     let queryCallback: QueryCallback = { arg, status, _, buf, len in
+                        // print("c-ares query callback called with status: \(status), len: \(len)")  // DEBUG
                         guard let handlerPointer = arg else {
                             preconditionFailure("'arg' is nil. This is a bug.")
                         }
@@ -172,6 +173,7 @@ final class Ares: Sendable {
                     }
 
                     self.channel.withChannel { channel in
+                        // print("---> c-ares ares_query for name: \(name), type: \(type)")  // DEBUG
                         ares_query(channel, name, DNSClass.IN.rawValue, type.intValue, queryCallback, handlerPointer)
                     }
                 }
@@ -272,7 +274,9 @@ extension Ares {
 
         init<Parser: AresQueryReplyParser>(parser: Parser, _ continuation: CheckedContinuation<Parser.Reply, Error>) {
             self._handler = { status, buffer, length in
-                guard status == ARES_SUCCESS || status == ARES_ENODATA else {
+                // print("---> Query callback status: \(status), buffer: \(buffer != nil), length: \(length)")
+                guard status == Int32(Int32(ARES_SUCCESS.rawValue)) || status == Int32(Int32(ARES_ENODATA.rawValue)) else {
+                    // print("---> Query callback error, status: \(status)")
                     return continuation.resume(throwing: AsyncDNSResolver.Error(cAresCode: status))
                 }
 
@@ -317,13 +321,13 @@ extension Ares {
 
             let parseStatus = ares_parse_a_reply(buffer, length, nil, addrttlsPointer, naddrttlsPointer)
 
-            switch parseStatus {
-            case ARES_SUCCESS:
+            switch Int32(parseStatus) {
+            case Int32(ARES_SUCCESS.rawValue):
                 let records = Array(UnsafeBufferPointer(start: addrttlsPointer, count: Int(naddrttlsPointer.pointee)))
                     .map { ARecord($0) }
                 return records
 
-            case ARES_ENODATA:
+            case Int32(ARES_ENODATA.rawValue):
                 return []
 
             default:
@@ -346,13 +350,13 @@ extension Ares {
 
             let parseStatus = ares_parse_aaaa_reply(buffer, length, nil, addrttlsPointer, naddrttlsPointer)
 
-            switch parseStatus {
-            case ARES_SUCCESS:
+            switch Int32(parseStatus) {
+            case Int32(ARES_SUCCESS.rawValue):
                 let records = Array(UnsafeBufferPointer(start: addrttlsPointer, count: Int(naddrttlsPointer.pointee)))
                     .map { AAAARecord($0) }
                 return records
 
-            case ARES_ENODATA:
+            case Int32(ARES_ENODATA.rawValue):
                 return []
 
             default:
@@ -370,8 +374,8 @@ extension Ares {
 
             let parseStatus = ares_parse_ns_reply(buffer, length, hostentPtrPtr)
 
-            switch parseStatus {
-            case ARES_SUCCESS:
+            switch Int32(parseStatus) {
+            case Int32(ARES_SUCCESS.rawValue):
                 guard let hostent = hostentPtrPtr.pointee?.pointee else {
                     return NSRecord(nameservers: [])
                 }
@@ -379,7 +383,7 @@ extension Ares {
                 let nameServers = toStringArray(hostent.h_aliases)
                 return NSRecord(nameservers: nameServers ?? [])
 
-            case ARES_ENODATA:
+            case Int32(ARES_ENODATA.rawValue):
                 return NSRecord(nameservers: [])
 
             default:
@@ -397,14 +401,14 @@ extension Ares {
 
             let parseStatus = ares_parse_a_reply(buffer, length, hostentPtrPtr, nil, nil)
 
-            switch parseStatus {
-            case ARES_SUCCESS:
+            switch Int32(parseStatus) {
+            case Int32(ARES_SUCCESS.rawValue):
                 guard let hostent = hostentPtrPtr.pointee?.pointee else {
                     return nil
                 }
                 return String(cString: hostent.h_name)
 
-            case ARES_ENODATA:
+            case Int32(ARES_ENODATA.rawValue):
                 return nil
             default:
                 throw AsyncDNSResolver.Error(cAresCode: parseStatus, "failed to parse CNAME query reply")
@@ -420,8 +424,8 @@ extension Ares {
             defer { soaReplyPtrPtr.deallocate() }
 
             let parseStatus = ares_parse_soa_reply(buffer, length, soaReplyPtrPtr)
-            switch parseStatus {
-            case ARES_SUCCESS:
+            switch Int32(parseStatus) {
+            case Int32(ARES_SUCCESS.rawValue):
                 guard let soaReply = soaReplyPtrPtr.pointee?.pointee else {
                     return nil
                 }
@@ -436,7 +440,7 @@ extension Ares {
                     ttl: soaReply.minttl
                 )
 
-            case ARES_ENODATA:
+            case Int32(ARES_ENODATA.rawValue):
                 return nil
 
             default:
@@ -463,8 +467,8 @@ extension Ares {
                 hostentPtrPtr
             )
 
-            switch parseStatus {
-            case ARES_SUCCESS:
+            switch Int32(parseStatus) {
+            case Int32(ARES_SUCCESS.rawValue):
                 guard let hostent = hostentPtrPtr.pointee?.pointee else {
                     return PTRRecord(names: [])
                 }
@@ -472,7 +476,7 @@ extension Ares {
                 let hostnames = toStringArray(hostent.h_aliases)
                 return PTRRecord(names: hostnames ?? [])
 
-            case ARES_ENODATA:
+            case Int32(ARES_ENODATA.rawValue):
                 return PTRRecord(names: [])
 
             default:
@@ -489,8 +493,8 @@ extension Ares {
             defer { mxsPointer.deallocate() }
 
             let parseStatus = ares_parse_mx_reply(buffer, length, mxsPointer)
-            switch parseStatus {
-            case ARES_SUCCESS:
+            switch Int32(parseStatus) {
+            case Int32(ARES_SUCCESS.rawValue):
                 var mxRecords = [MXRecord]()
                 var mxRecordOptional = mxsPointer.pointee?.pointee
                 while let mxRecord = mxRecordOptional {
@@ -504,7 +508,7 @@ extension Ares {
                 }
                 return mxRecords
 
-            case ARES_ENODATA:
+            case Int32(ARES_ENODATA.rawValue):
                 return []
 
             default:
@@ -521,9 +525,11 @@ extension Ares {
             defer { txtsPointer.deallocate() }
 
             let parseStatus = ares_parse_txt_reply(buffer, length, txtsPointer)
+            print("---> TXT parse status: \(parseStatus)")
 
-            switch parseStatus {
-            case ARES_SUCCESS:
+            switch Int32(parseStatus) {
+            case Int32(ARES_SUCCESS.rawValue):
+            print("---> TXT parse success")
                 var txtRecords = [TXTRecord]()
                 var txtRecordOptional = txtsPointer.pointee?.pointee
                 while let txtRecord = txtRecordOptional {
@@ -536,7 +542,8 @@ extension Ares {
                 }
                 return txtRecords
 
-            case ARES_ENODATA:
+            case Int32(ARES_ENODATA.rawValue):
+                        print("---> TXT parse no data")
                 return []
 
             default:
@@ -554,8 +561,8 @@ extension Ares {
 
             let parseStatus = ares_parse_srv_reply(buffer, length, replyPointer)
 
-            switch parseStatus {
-            case ARES_SUCCESS:
+            switch Int32(parseStatus) {
+            case Int32(ARES_SUCCESS.rawValue):
                 var srvRecords = [SRVRecord]()
                 var srvRecordOptional = replyPointer.pointee?.pointee
                 while let srvRecord = srvRecordOptional {
@@ -571,7 +578,7 @@ extension Ares {
                 }
                 return srvRecords
 
-            case ARES_ENODATA:
+            case Int32(ARES_ENODATA.rawValue):
                 return []
 
             default:
@@ -589,8 +596,8 @@ extension Ares {
 
             let parseStatus = ares_parse_naptr_reply(buffer, length, naptrsPointer)
 
-            switch parseStatus {
-            case ARES_SUCCESS:
+            switch Int32(parseStatus) {
+            case Int32(ARES_SUCCESS.rawValue):
                 var naptrRecords = [NAPTRRecord]()
                 var naptrRecordOptional = naptrsPointer.pointee?.pointee
                 while let naptrRecord = naptrRecordOptional {
@@ -608,7 +615,7 @@ extension Ares {
                 }
                 return naptrRecords
 
-            case ARES_ENODATA:
+            case Int32(ARES_ENODATA.rawValue):
                 return []
 
             default:
