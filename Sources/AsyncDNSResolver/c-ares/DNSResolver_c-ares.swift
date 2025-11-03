@@ -123,9 +123,10 @@ extension QueryType {
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 final class Ares: Sendable {
-    typealias QueryCallback = @convention(c) (
-        UnsafeMutableRawPointer?, CInt, CInt, UnsafeMutablePointer<CUnsignedChar>?, CInt
-    ) -> Void
+    typealias QueryCallback =
+        @convention(c) (
+            UnsafeMutableRawPointer?, CInt, CInt, UnsafeMutablePointer<CUnsignedChar>?, CInt
+        ) -> Void
 
     private let channel: AresChannel
     private let queryProcessor: QueryProcessor
