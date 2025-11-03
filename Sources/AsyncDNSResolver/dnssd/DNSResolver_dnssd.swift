@@ -249,9 +249,7 @@ extension DNSSD {
                 throw AsyncDNSResolver.Error(code: .badResponse)
             }
 
-            var parsedAddressBytes = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
-            inet_ntop(AF_INET, ptr, &parsedAddressBytes, socklen_t(INET_ADDRSTRLEN))
-            let parsedAddress = String(cString: parsedAddressBytes)
+            let parsedAddress = sys_inet_ntop(family: AF_INET, bytes: ptr, length: Int(INET_ADDRSTRLEN)) ?? ""
             return ARecord(address: .init(address: parsedAddress), ttl: nil)
         }
 
@@ -272,9 +270,7 @@ extension DNSSD {
                 throw AsyncDNSResolver.Error(code: .badResponse)
             }
 
-            var parsedAddressBytes = [CChar](repeating: 0, count: Int(INET6_ADDRSTRLEN))
-            inet_ntop(AF_INET6, ptr, &parsedAddressBytes, socklen_t(INET6_ADDRSTRLEN))
-            let parsedAddress = String(cString: parsedAddressBytes)
+            let parsedAddress = sys_inet_ntop(family: AF_INET6, bytes: ptr, length: Int(INET6_ADDRSTRLEN)) ?? ""
             return AAAARecord(address: .init(address: parsedAddress), ttl: nil)
         }
 
