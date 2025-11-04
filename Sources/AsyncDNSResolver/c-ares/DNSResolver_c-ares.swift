@@ -638,18 +638,16 @@ private func toStringArray(_ arrayPointer: UnsafeMutablePointer<UnsafeMutablePoi
 extension IPAddress.IPv4 {
     init(_ address: in_addr) {
         var address = address
-        var addressBytes = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
-        inet_ntop(AF_INET, &address, &addressBytes, socklen_t(INET_ADDRSTRLEN))
-        self = .init(address: String(cString: addressBytes))
+        let addressString = sys_inet_ntop(family: AF_INET, bytes: &address, length: Int(INET_ADDRSTRLEN)) ?? ""
+        self = IPAddress.IPv4(address: addressString)
     }
 }
 
 extension IPAddress.IPv6 {
     init(_ address: ares_in6_addr) {
         var address = address
-        var addressBytes = [CChar](repeating: 0, count: Int(INET6_ADDRSTRLEN))
-        inet_ntop(AF_INET6, &address, &addressBytes, socklen_t(INET6_ADDRSTRLEN))
-        self = .init(address: String(cString: addressBytes))
+        let addressString = sys_inet_ntop(family: AF_INET6, bytes: &address, length: Int(INET6_ADDRSTRLEN)) ?? ""
+        self = IPAddress.IPv6(address: addressString)
     }
 }
 
@@ -664,5 +662,22 @@ extension AAAARecord {
     init(_ addrttl: ares_addr6ttl) {
         self.address = IPAddress.IPv6(addrttl.ip6addr)
         self.ttl = addrttl.ttl
+    }
+}
+
+func sys_inet_ntop(family: CInt, bytes: UnsafeRawPointer, length: Int) -> String? {
+    var addressBytes: [Int8] = Array(repeating: 0, count: length)
+    return addressBytes.withUnsafeMutableBufferPointer { addressBytesPtr -> String? in
+        // The returned pointer is the same as addressBytesPtr.baseAddress but nil on error.
+        if inet_ntop(family, bytes, addressBytesPtr.baseAddress, socklen_t(length)) == nil {
+            return nil
+        }
+
+        return addressBytesPtr.baseAddress!.withMemoryRebound(
+            to: UInt8.self,
+            capacity: addressBytesPtr.count
+        ) {
+            String(cString: $0)
+        }
     }
 }
