@@ -16,7 +16,7 @@
 
 /// `AsyncDNSResolver` provides API for running asynchronous DNS queries.
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
-public struct AsyncDNSResolver {
+public struct AsyncDNSResolver: Sendable {
     let underlying: DNSResolver
 
     /// Initialize an `AsyncDNSResolver`.
@@ -96,7 +96,7 @@ public struct AsyncDNSResolver {
 
 /// API for running DNS queries.
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
-public protocol DNSResolver {
+public protocol DNSResolver: Sendable {
     /// Lookup A records associated with `name`.
     ///
     /// - Parameters:
