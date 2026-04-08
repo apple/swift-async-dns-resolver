@@ -96,7 +96,7 @@ public struct AsyncDNSResolver: Sendable {
 
 /// API for running DNS queries.
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
-public protocol DNSResolver: Sendable {
+@preconcurrency public protocol DNSResolver: Sendable {
     /// Lookup A records associated with `name`.
     ///
     /// - Parameters:
