@@ -421,8 +421,20 @@ extension DNSSD {
             guard let ptr = data?.assumingMemoryBound(to: UInt8.self) else {
                 return nil
             }
-            let txt = String(cString: ptr.advanced(by: 1))
-            return TXTRecord(txt: txt)
+
+            guard length >= 1 else {
+                throw AsyncDNSResolver.Error(code: .badResponse)
+            }
+
+            let bufferPtr = UnsafeBufferPointer(start: ptr, count: Int(length))
+            var buffer = Array(bufferPtr)[...]
+
+            if let txtLength = buffer.readInteger(as: UInt8.self),
+                let txt = buffer.readString(length: Int(txtLength)) {
+                return TXTRecord(txt: txt)
+            } else {
+                throw AsyncDNSResolver.Error(code: .badResponse)
+            }
         }
 
         func generateReply(records: [TXTRecord]) throws -> [TXTRecord] {
