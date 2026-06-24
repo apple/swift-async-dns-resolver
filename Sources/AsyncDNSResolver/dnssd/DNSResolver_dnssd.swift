@@ -430,7 +430,8 @@ extension DNSSD {
             var buffer = Array(bufferPtr)[...]
 
             if let txtLength = buffer.readInteger(as: UInt8.self),
-                let txt = buffer.readString(length: Int(txtLength)) {
+                let txt = buffer.readString(length: Int(txtLength))
+            {
                 return TXTRecord(txt: txt)
             } else {
                 throw AsyncDNSResolver.Error(code: .badResponse)
