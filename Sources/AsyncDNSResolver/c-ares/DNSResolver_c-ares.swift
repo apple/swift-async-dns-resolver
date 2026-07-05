@@ -15,6 +15,13 @@
 import CAsyncDNSResolver
 import Foundation
 
+#if os(Windows)
+// On Windows `ares_socket_t` is `SOCKET` and `ARES_SOCKET_BAD` is defined as
+// `INVALID_SOCKET`, a cast-expression macro that the Swift C importer cannot
+// surface. Recreate it here: `INVALID_SOCKET` is `(SOCKET)(~0)`.
+private let ARES_SOCKET_BAD = ~(ares_socket_t(0))
+#endif
+
 /// ``DNSResolver`` implementation backed by c-ares C library.
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 public final class CAresDNSResolver: DNSResolver, Sendable {
@@ -669,9 +676,16 @@ func sys_inet_ntop(family: CInt, bytes: UnsafeRawPointer, length: Int) -> String
     var addressBytes: [Int8] = Array(repeating: 0, count: length)
     return addressBytes.withUnsafeMutableBufferPointer { addressBytesPtr -> String? in
         // The returned pointer is the same as addressBytesPtr.baseAddress but nil on error.
+        #if os(Windows)
+        // On Windows `inet_ntop`'s size argument is `size_t` (imported as `Int`).
+        if inet_ntop(family, bytes, addressBytesPtr.baseAddress, length) == nil {
+            return nil
+        }
+        #else
         if inet_ntop(family, bytes, addressBytesPtr.baseAddress, socklen_t(length)) == nil {
             return nil
         }
+        #endif
 
         return addressBytesPtr.baseAddress!.withMemoryRebound(
             to: UInt8.self,

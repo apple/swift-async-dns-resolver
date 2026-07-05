@@ -14,6 +14,17 @@
 
 /* Generated from ares_config.h.cmake*/
 
+#if defined(_WIN32)
+
+/* On Windows, defer to c-ares's own hand-crafted Windows configuration rather
+ * than the POSIX settings below. Use a path relative to this header so it
+ * resolves both when compiling the c-ares sources and when the Swift compiler
+ * builds the Clang module from the umbrella header (which does not have the
+ * c-ares/src/lib header search path). */
+#include "../c-ares/src/lib/config-win32.h"
+
+#else
+
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
 
@@ -443,4 +454,6 @@
 
 /* Type to use in place of in_addr_t when system does not provide it. */
 #undef in_addr_t
+
+#endif /* _WIN32 */
 

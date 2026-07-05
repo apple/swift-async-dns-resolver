@@ -15,8 +15,17 @@
 #ifndef C_ASYNC_RESOLVER_H
 #define C_ASYNC_RESOLVER_H
 
+#if defined(_WIN32)
+#include <winsock2.h> // socket types, hostent
+#include <ws2tcpip.h> // inet_ntop, socklen_t, INET6_ADDRSTRLEN
+// c-ares is linked statically into this module, so its public API must be
+// declared without __declspec(dllimport). This must be visible everywhere
+// ares.h is consumed, including from the Swift importer.
+#define CARES_STATICLIB
+#else
 #include <arpa/inet.h> // inet_ntop
 #include <netdb.h> // hostent
+#endif
 
 #include "ares_build.h"
 #include "ares_config.h"

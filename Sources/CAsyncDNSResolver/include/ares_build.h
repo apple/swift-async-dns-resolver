@@ -15,6 +15,22 @@
 #ifndef __CARES_BUILD_H
 #define __CARES_BUILD_H
 
+#ifdef _WIN32
+
+/* On Windows the socket length type is a plain `int`, and the required system
+ * headers (winsock2.h / ws2tcpip.h) are pulled in by ares_setup.h / the
+ * CAsyncDNSResolver umbrella header, so we must not include the POSIX
+ * <sys/socket.h> here. */
+#define CARES_TYPEOF_ARES_SOCKLEN_T int
+
+#ifdef _WIN64
+#  define CARES_TYPEOF_ARES_SSIZE_T __int64
+#else
+#  define CARES_TYPEOF_ARES_SSIZE_T long
+#endif
+
+#else /* !_WIN32 */
+
 #define CARES_TYPEOF_ARES_SOCKLEN_T socklen_t
 #define CARES_TYPEOF_ARES_SSIZE_T ssize_t
 
@@ -23,10 +39,6 @@
  * for C-Ares */
 #define CARES_HAVE_SYS_TYPES_H
 #define CARES_HAVE_SYS_SOCKET_H
-/* #undef CARES_HAVE_WINDOWS_H */
-/* #undef CARES_HAVE_WS2TCPIP_H */
-/* #undef CARES_HAVE_WINSOCK2_H */
-/* #undef CARES_HAVE_WINDOWS_H */
 
 #ifdef CARES_HAVE_SYS_TYPES_H
 #  include <sys/types.h>
@@ -36,17 +48,7 @@
 #  include <sys/socket.h>
 #endif
 
-#ifdef CARES_HAVE_WINSOCK2_H
-#  include <winsock2.h>
-#endif
-
-#ifdef CARES_HAVE_WS2TCPIP_H
-#  include <ws2tcpip.h>
-#endif
-
-#ifdef CARES_HAVE_WINDOWS_H
-#  include <windows.h>
-#endif
+#endif /* _WIN32 */
 
 
 typedef CARES_TYPEOF_ARES_SOCKLEN_T ares_socklen_t;
