@@ -607,19 +607,25 @@ extension IPAddress.IPv6 {
 func sys_inet_ntop(family: CInt, bytes: UnsafeRawPointer, length: Int) -> String? {
     var addressBytes: [Int8] = Array(repeating: 0, count: length)
     return addressBytes.withUnsafeMutableBufferPointer { addressBytesPtr -> String? in
-        // The returned pointer is the same as addressBytesPtr.baseAddress but nil on error.
+        // Unwrapped once here because Bionic annotates `dst` as `char * _Nonnull`, so it
+        // imports as a non-optional pointer; Darwin, Glibc and WinSDK import it as optional.
+        guard let destination = addressBytesPtr.baseAddress else {
+            return nil
+        }
+
+        // The returned pointer is the same as destination but nil on error.
         #if os(Windows)
         // On Windows `inet_ntop`'s size argument is `size_t` (imported as `Int`).
-        if inet_ntop(family, bytes, addressBytesPtr.baseAddress, length) == nil {
+        if inet_ntop(family, bytes, destination, length) == nil {
             return nil
         }
         #else
-        if inet_ntop(family, bytes, addressBytesPtr.baseAddress, socklen_t(length)) == nil {
+        if inet_ntop(family, bytes, destination, socklen_t(length)) == nil {
             return nil
         }
         #endif
 
-        return addressBytesPtr.baseAddress!.withMemoryRebound(
+        return destination.withMemoryRebound(
             to: UInt8.self,
             capacity: addressBytesPtr.count
         ) {
