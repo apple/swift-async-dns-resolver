@@ -200,14 +200,14 @@ final class Ares: Sendable {
                             handlerPointer,
                             &qid
                         )
-                        // Unlike the deprecated `ares_query`, `ares_query_dnsrec` reports a
-                        // synchronous status. On failure the callback will not fire, so free
-                        // the pointer here and fail via `handler`, which resumes once even if
-                        // the task is cancelled concurrently.
+                        // `ares_query_dnsrec` reports a synchronous status, but on every
+                        // reachable failure path it has already invoked the callback with that
+                        // status (`ares_send.c`), and the callback frees `handlerPointer`. So the
+                        // pointer must not be freed here. `handler` resumes exactly once, so this
+                        // report is a no-op on those paths; it matters on the one path that
+                        // returns without calling back, where `ares_query_dnsrec` yields
+                        // `ARES_EFORMERR` for a null channel and nothing else would resume.
                         if status != ARES_SUCCESS {
-                            let pointer = handlerPointer.assumingMemoryBound(to: QueryReplyHandler.self)
-                            pointer.deinitialize(count: 1)
-                            pointer.deallocate()
                             handler.handle(status: status, dnsrec: nil)
                         }
                     }
