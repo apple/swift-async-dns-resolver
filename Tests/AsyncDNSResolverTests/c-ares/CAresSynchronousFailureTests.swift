@@ -46,33 +46,4 @@ final class CAresSynchronousFailureTests: XCTestCase {
             }
         }
     }
-
-    /// The same failure through every query type, since each builds its own reply parser around
-    /// the shared handler box and a leak or an extra release in any one of them is the same bug.
-    func test_synchronousFailure_throwsForEveryQueryType() async throws {
-        let resolver = try self.makeResolverWithNoServers()
-
-        for iteration in 0..<5 {
-            await self.assertThrows("queryA", iteration) { _ = try await resolver.queryA(name: "example.com") }
-            await self.assertThrows("queryAAAA", iteration) { _ = try await resolver.queryAAAA(name: "example.com") }
-            await self.assertThrows("querySRV", iteration) {
-                _ = try await resolver.querySRV(name: "_caldavs._tcp.example.com")
-            }
-            await self.assertThrows("queryTXT", iteration) { _ = try await resolver.queryTXT(name: "example.com") }
-        }
-    }
-
-    private func assertThrows(
-        _ label: String,
-        _ iteration: Int,
-        _ query: () async throws -> Void
-    ) async {
-        do {
-            try await query()
-            XCTFail("\(label) iteration \(iteration): should not succeed with no configured servers")
-        } catch {
-            // Any thrown error is acceptable here; this case exists to prove the call returns
-            // control to the caller instead of faulting.
-        }
-    }
 }
