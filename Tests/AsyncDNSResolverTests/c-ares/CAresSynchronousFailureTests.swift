@@ -16,8 +16,8 @@ import XCTest
 
 @testable import AsyncDNSResolver
 
-/// A synchronous failure from `ares_query_dnsrec` must surface as a thrown error and must
-/// free the query handler exactly once.
+/// A synchronous failure from `ares_query_dnsrec` must surface as a thrown error without
+/// freeing the query handler more than once.
 final class CAresSynchronousFailureTests: XCTestCase {
     /// How many times to repeat the failing query. One over-release can land on memory that
     /// has not been reused yet and pass unnoticed, so repeat often enough that the allocator
