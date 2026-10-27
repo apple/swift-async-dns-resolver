@@ -25,11 +25,7 @@ final class CAresSynchronousFailureTests: XCTestCase {
     private static let iterations = 50
 
     /// An empty server list is the simplest way to reach a synchronous failure offline, and it
-    /// needs no network, no routing changes and no privileges. `AresChannel` joins the list into
-    /// a CSV and hands it to `ares_set_servers_ports_csv`, which treats an empty string as
-    /// "blank all servers" and succeeds, leaving the channel with none. Every subsequent query
-    /// then takes the `ares_slist_len(channel->servers) == 0` path in `ares_send.c`, which calls
-    /// the callback with `ARES_ENOSERVER` and returns the same status.
+    /// needs no network, no routing changes and no privileges.
     private func makeResolverWithNoServers() throws -> CAresDNSResolver {
         var options = CAresDNSResolver.Options()
         options.servers = []
