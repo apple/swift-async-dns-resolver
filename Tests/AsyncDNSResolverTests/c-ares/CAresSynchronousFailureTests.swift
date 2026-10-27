@@ -18,13 +18,6 @@ import XCTest
 
 /// A synchronous failure from `ares_query_dnsrec` must surface as a thrown error and must
 /// free the query handler exactly once.
-///
-/// c-ares invokes the query callback *and* returns the error on every reachable synchronous
-/// failure path, so the returned status is not evidence that the callback was skipped. The
-/// callback owns the handler box and frees it, which means a second free on the error return
-/// is a release of freed memory: either a `swift_release` on a recycled allocation or a
-/// `POINTER_BEING_FREED_WAS_NOT_ALLOCATED` abort, both of which kill the process rather than
-/// failing an assertion.
 final class CAresSynchronousFailureTests: XCTestCase {
     /// How many times to repeat the failing query. One over-release can land on memory that
     /// has not been reused yet and pass unnoticed, so repeat often enough that the allocator
