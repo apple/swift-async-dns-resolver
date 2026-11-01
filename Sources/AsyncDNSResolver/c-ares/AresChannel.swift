@@ -15,6 +15,10 @@
 import CAsyncDNSResolver
 import Foundation
 
+#if os(Windows)
+import WinSDK
+#endif
+
 // MARK: - ares_channel
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
@@ -119,5 +123,52 @@ final class SocketRegistry: @unchecked Sendable {
         self.lock.lock()
         defer { self.lock.unlock() }
         return self.locked_sockets.map { (socket: $0.key, readable: $0.value.readable, writable: $0.value.writable) }
+    }
+
+    /// Asks the OS which of `sockets` are ready, without blocking, and returns those with
+    /// `readable`/`writable` narrowed to what is actually ready.
+    ///
+    /// `sock_state_cb` only reports what c-ares is *interested* in. It must not be told about
+    /// a socket before it's ready: c-ares takes a writable TCP socket to mean that `connect`
+    /// finished and sends on it straight away. While the handshake is still in progress that
+    /// `send` fails with `ENOTCONN` on Darwin, and c-ares gives up on the connection.
+    static func readySockets(
+        in sockets: [(socket: Socket, readable: Bool, writable: Bool)]
+    ) -> [(socket: Socket, readable: Bool, writable: Bool)] {
+        #if os(Windows)
+        // On Windows `POLLIN` is a composite macro; `POLLRDNORM` covers data on a socket.
+        let readEvent = CShort(POLLRDNORM)
+        let writeEvent = CShort(POLLWRNORM)
+        #else
+        let readEvent = CShort(POLLIN)
+        let writeEvent = CShort(POLLOUT)
+        #endif
+        // Reported whether or not they were requested. c-ares has to attempt the I/O it was
+        // waiting for in order to find out what went wrong (e.g. a refused connection).
+        let failureEvents = CShort(POLLERR) | CShort(POLLHUP)
+
+        var descriptors = sockets.map { entry in
+            pollfd(
+                fd: entry.socket,
+                events: (entry.readable ? readEvent : 0) | (entry.writable ? writeEvent : 0),
+                revents: 0
+            )
+        }
+
+        #if os(Windows)
+        let result = WSAPoll(&descriptors, ULONG(descriptors.count), 0)
+        #else
+        let result = poll(&descriptors, nfds_t(descriptors.count), 0)
+        #endif
+        // On failure nothing is known to be ready; the next poll tries again.
+        guard result > 0 else {
+            return []
+        }
+
+        return zip(sockets, descriptors).compactMap { entry, descriptor in
+            let readable = entry.readable && descriptor.revents & (readEvent | failureEvents) != 0
+            let writable = entry.writable && descriptor.revents & (writeEvent | failureEvents) != 0
+            return readable || writable ? (socket: entry.socket, readable: readable, writable: writable) : nil
+        }
     }
 }

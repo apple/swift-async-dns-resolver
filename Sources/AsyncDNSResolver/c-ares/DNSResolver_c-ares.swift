@@ -254,22 +254,28 @@ extension Ares {
             self.pollIntervalNanos = pollIntervalNanos
         }
 
-        /// Drives c-ares by calling `ares_process_fd` for each socket it is currently
-        /// waiting on. The set of sockets (and their read/write interest) is maintained
-        /// by the `sock_state_cb` in ``SocketRegistry`` rather than the deprecated
-        /// `ares_getsock`.
+        /// Drives c-ares by calling `ares_process_fd` for each socket the OS reports as
+        /// ready, then once more to expire queries whose timeout has passed. The set of
+        /// sockets (and their read/write interest) is maintained by the `sock_state_cb` in
+        /// ``SocketRegistry`` rather than the deprecated `ares_getsock`.
         func poll() {
-            let sockets = self.channel.socketRegistry.snapshot()
-
-            if !sockets.isEmpty {
-                self.channel.withChannel { channel in
-                    for entry in sockets {
-                        // `ARES_SOCKET_BAD` instructs c-ares not to perform the action
-                        let readFD = entry.readable ? entry.socket : ARES_SOCKET_BAD
-                        let writeFD = entry.writable ? entry.socket : ARES_SOCKET_BAD
-                        ares_process_fd(channel, readFD, writeFD)
-                    }
+            self.channel.withChannel { channel in
+                // c-ares only changes its sockets while this lock is held, so what we check
+                // for readiness can't be closed and reused before we report on it.
+                let sockets = self.channel.socketRegistry.snapshot()
+                guard !sockets.isEmpty else {
+                    return
                 }
+
+                for entry in SocketRegistry.readySockets(in: sockets) {
+                    // `ARES_SOCKET_BAD` instructs c-ares not to perform the action
+                    let readFD = entry.readable ? entry.socket : ARES_SOCKET_BAD
+                    let writeFD = entry.writable ? entry.socket : ARES_SOCKET_BAD
+                    ares_process_fd(channel, readFD, writeFD)
+                }
+
+                // Timeouts must fire even if no socket is ready.
+                ares_process_fd(channel, ARES_SOCKET_BAD, ARES_SOCKET_BAD)
             }
 
             // Schedule next poll
