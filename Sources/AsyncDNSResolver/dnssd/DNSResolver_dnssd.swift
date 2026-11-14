@@ -478,6 +478,14 @@ extension DNSSD {
 
 extension DNSSDQueryReplyHandler {
     func readName(_ buffer: inout ArraySlice<UInt8>) -> String? {
+        // A name made of only the root label is valid, e.g. the "." exchange of a null MX
+        // (RFC 7505) or the "." target of an SRV record (RFC 2782). Return it as an empty
+        // string, which is what the c-ares backend returns for the root name.
+        if buffer.first == 0 {
+            buffer = buffer.dropFirst()
+            return ""
+        }
+
         var parts: [String] = []
         while let length = buffer.readInteger(as: UInt8.self),
             length > 0,
